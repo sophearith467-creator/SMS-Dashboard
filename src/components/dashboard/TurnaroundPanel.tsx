@@ -2,7 +2,8 @@ import React from 'react';
 import { formatNumber } from '../../lib/utils';
 import type { ApprovalTurnaround } from '../../types/analytics';
 
-export function TurnaroundPanel({ data }: {data: ApprovalTurnaround;}) {
+export function TurnaroundPanel({ data }: { data: ApprovalTurnaround }) {
+  if (!data) return null; // or a loading skeleton
   const max = Math.max(...data.byStage.map((stage) => stage.hours));
 
   return (
