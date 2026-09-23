@@ -11,13 +11,13 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const APPROVER_ROLES: Role[] = [
-'ROLE_FUNCTION_MANAGER',
-'ROLE_HRBP',
-'ROLE_FINANCE',
-'ROLE_BIZOPS',
-'ROLE_EXECUTIVE',
-'ROLE_ADMIN'];
-
+  'ROLE_FUNCTION_MANAGER',
+  'ROLE_HRBP',
+  'ROLE_FINANCE',
+  'ROLE_BIZOPS',
+  'ROLE_EXECUTIVE',
+  'ROLE_ADMIN'
+];
 
 export function roleLabel(role: Role): string {
   return ROLE_LABELS[role] ?? role;
@@ -25,18 +25,23 @@ export function roleLabel(role: Role): string {
 
 export function primaryRole(roles: Role[]): Role {
   const precedence: Role[] = [
-  'ROLE_ADMIN',
-  'ROLE_EXECUTIVE',
-  'ROLE_BIZOPS',
-  'ROLE_FINANCE',
-  'ROLE_HRBP',
-  'ROLE_FUNCTION_MANAGER',
-  'ROLE_STAFF'];
-
+    'ROLE_ADMIN',
+    'ROLE_EXECUTIVE',
+    'ROLE_BIZOPS',
+    'ROLE_FINANCE',
+    'ROLE_HRBP',
+    'ROLE_FUNCTION_MANAGER',
+    'ROLE_STAFF'
+  ];
   return precedence.find((role) => roles.includes(role)) ?? 'ROLE_STAFF';
 }
 
 export function hasAnyRole(userRoles: Role[], allowed?: Role[]): boolean {
   if (!allowed || allowed.length === 0) return true;
   return userRoles.some((role) => allowed.includes(role));
+}
+
+/** Returns true only when the user has ROLE_STAFF and no higher role */
+export function isStaffOnly(roles: Role[]): boolean {
+  return roles.length > 0 && roles.every((r) => r === 'ROLE_STAFF');
 }

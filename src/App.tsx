@@ -16,8 +16,10 @@ import { VehicleRequests } from './pages/VehicleRequests';
 import { MileageClaims } from './pages/MileageClaims';
 import { Settlement } from './pages/Settlement';
 import { Users } from './pages/Users';
+import { UserDetail } from './pages/UserDetail';
 import { NotFound } from './pages/NotFound';
 import { APPROVER_ROLES } from './lib/roles';
+import { MobileOnly } from './pages/MobileOnly';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +44,7 @@ export function App({ defaultTheme = 'light' }: AppProps) {
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/mobile-only" element={<MobileOnly />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route element={<AppLayout />}>
@@ -66,6 +69,7 @@ export function App({ defaultTheme = 'light' }: AppProps) {
 
                   <Route element={<ProtectedRoute roles={['ROLE_ADMIN']} />}>
                     <Route path="users" element={<Users />} />
+                    <Route path="users/:id" element={<UserDetail />} />
                   </Route>
 
                   <Route path="404" element={<NotFound />} />

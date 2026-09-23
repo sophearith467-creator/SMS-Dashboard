@@ -4,7 +4,7 @@ import { cn } from "../../lib/utils";
 import { Skeleton } from "../ui/Skeleton";
 type Accent = 'brand' | 'success' | 'warning' | 'danger';
 const ACCENTS: Record<Accent, string> = {
-  brand: 'bg-brand-soft text-brand-text',
+  brand: 'bg-gradient-brand text-white shadow-brand',
   success: 'bg-success-soft text-success-text',
   warning: 'bg-warning-soft text-warning-text',
   danger: 'bg-danger-soft text-danger-text'
@@ -18,6 +18,7 @@ export interface StatCardProps {
   changePct?: number;
   positiveIsGood?: boolean;
   loading?: boolean;
+  index?: number;
 }
 export function StatCard({
   label,
@@ -27,7 +28,8 @@ export function StatCard({
   accent = 'brand',
   changePct,
   positiveIsGood = true,
-  loading = false
+  loading = false,
+  index = 0
 }: StatCardProps) {
   if (loading) {
     return <div className="rounded-2xl border border-line bg-surface p-5 shadow-soft">
@@ -42,10 +44,13 @@ export function StatCard({
   const rising = (changePct ?? 0) >= 0;
   const good = rising === positiveIsGood;
   const TrendIcon = rising ? ArrowUpRightIcon : ArrowDownRightIcon;
-  return <div className="group rounded-2xl border border-line bg-surface p-5 shadow-soft transition-[box-shadow,border-color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card">
+  return <div
+      className="group animate-fade-in-up rounded-2xl border border-line bg-surface p-5 shadow-soft transition-[box-shadow,border-color,transform] duration-200 ease-out hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
       <div className="flex items-start justify-between gap-3">
         <p className="text-[13px] font-medium text-fg-muted">{label}</p>
-        <span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', ACCENTS[accent])}>
+        <span className={cn('flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-3', ACCENTS[accent])}>
           <Icon size={17} aria-hidden />
         </span>
       </div>

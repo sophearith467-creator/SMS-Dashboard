@@ -56,6 +56,9 @@ export default {
           text: 'rgb(var(--danger-text) / <alpha-value>)',
         },
       },
+      backgroundImage: {
+        'gradient-brand': 'linear-gradient(135deg, rgb(var(--gradient-start)) 0%, rgb(var(--gradient-end)) 100%)',
+      },
       borderRadius: {
         xl: '0.875rem',
         '2xl': '1.125rem',
@@ -66,14 +69,31 @@ export default {
         card: '0 1px 2px rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.12)',
         pop: '0 12px 40px -12px rgb(15 23 42 / 0.22), 0 2px 8px -2px rgb(15 23 42 / 0.08)',
         brand: '0 8px 24px -10px rgb(79 70 229 / 0.55)',
+        glow: '0 20px 60px -15px rgb(var(--gradient-start) / 0.45)',
       },
       keyframes: {
         shimmer: {
           '100%': { transform: 'translateX(100%)' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0) scale(1)' },
+          '50%': { transform: 'translateY(-16px) scale(1.04)' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        gradientPan: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.6s infinite',
+        float: 'float 7s ease-in-out infinite',
+        'float-delayed': 'float 9s ease-in-out infinite 1.5s',
+        'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.23,1,0.32,1) both',
+        'gradient-pan': 'gradientPan 10s ease infinite',
       },
     },
   },

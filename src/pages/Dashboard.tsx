@@ -3,21 +3,19 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
   ClockIcon,
-  PlusIcon,
   TriangleAlertIcon,
   WalletIcon,
   MapIcon } from
 'lucide-react';
-import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatCard } from '../components/shared/StatCard';
-import { Button } from '../components/ui/Button';
 import { Card, CardHeader } from '../components/ui/Card';
 import { Skeleton, SkeletonText } from '../components/ui/Skeleton';
 import { MissionTrendChart } from '../components/dashboard/MissionTrendChart';
 import { SpendBreakdown } from '../components/dashboard/SpendBreakdown';
 import { TurnaroundPanel } from '../components/dashboard/TurnaroundPanel';
 import { ExceptionsList } from '../components/dashboard/ExceptionsList';
+import { DashboardHero } from '../components/dashboard/DashboardHero';
 import { MissionFormModal } from '../components/missions/MissionFormModal';
 import {
   useAllowanceSpend,
@@ -42,28 +40,16 @@ export function Dashboard() {
 
   return (
     <PageTransition>
-      <PageHeader
-        title={`Good morning, ${firstName}`}
+      <DashboardHero
+        firstName={firstName}
         description="Here is how missions, allowances and approvals are tracking across the organisation this quarter."
-        actions={
-        <>
-            {can(APPROVER_ROLES) &&
-          <Link
-            to="/approvals"
-            className="hidden h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-fg transition-[background-color,border-color] duration-150 ease-out hover:border-line-strong hover:bg-surface-muted sm:inline-flex">
-            
-                Review approvals
-              </Link>
-          }
-            <Button icon={PlusIcon} onClick={() => setCreateOpen(true)}>
-              New mission
-            </Button>
-          </>
-        } />
-      
+        showApprovalsLink={can(APPROVER_ROLES)}
+        onCreateMission={() => setCreateOpen(true)}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
+          index={0}
           label="Total missions"
           value={summary.data ? formatNumber(summary.data.total) : '—'}
           caption={summary.data ? `${summary.data.inProgress} currently in the field` : ''}
@@ -73,6 +59,7 @@ export function Dashboard() {
           loading={summary.isLoading} />
         
         <StatCard
+          index={1}
           label="Allowance spend"
           value={spend.data ? formatCurrency(spend.data.totalSpend, spend.data.currency, true) : '—'}
           caption={
@@ -87,6 +74,7 @@ export function Dashboard() {
           loading={spend.isLoading} />
         
         <StatCard
+          index={2}
           label="Approval turnaround"
           value={turnaround.data ? `${turnaround.data.averageHours}h` : '—'}
           caption={turnaround.data ? `${turnaround.data.withinSlaPct}% resolved within SLA` : ''}
@@ -97,6 +85,7 @@ export function Dashboard() {
           loading={turnaround.isLoading} />
         
         <StatCard
+          index={3}
           label="Open exceptions"
           value={exceptions.data ? formatNumber(exceptions.data.open) : '—'}
           caption={exceptions.data ? `${exceptions.data.items.length} need a decision this week` : ''}
@@ -109,7 +98,7 @@ export function Dashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-12">
-        <Card className="xl:col-span-8">
+        <Card interactive className="xl:col-span-8">
           <CardHeader
             title="Mission throughput"
             description="Submitted versus completed missions over the last six months."
@@ -151,7 +140,7 @@ export function Dashboard() {
           }
         </Card>
 
-        <Card className="xl:col-span-4">
+        <Card interactive className="xl:col-span-4">
           <CardHeader
             title="Approval turnaround"
             description="Average hours spent at each stage of the chain." />
@@ -167,7 +156,7 @@ export function Dashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-12">
-        <Card padded={false} className="xl:col-span-7">
+        <Card interactive padded={false} className="xl:col-span-7">
           <CardHeader
             className="px-5 pb-4 pt-5"
             title="Exceptions needing attention"
@@ -193,7 +182,7 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card className="xl:col-span-5">
+        <Card interactive className="xl:col-span-5">
           <CardHeader
             title="Allowance budget"
             description="Settled and committed spend against the annual travel envelope." />

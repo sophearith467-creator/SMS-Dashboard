@@ -1,4 +1,5 @@
-import { http } from './client';
+import { request } from './client';
+import { demoState } from './demoStore';
 
 export interface StaffOption {
   id: number;
@@ -16,7 +17,35 @@ interface ApiEnvelope<T> {
   data: T;
 }
 
+interface PageEnvelope<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
 export async function fetchStaffList(): Promise<StaffOption[]> {
-  const res = await http.get<ApiEnvelope<StaffOption[]>>('/api/users');
-  return res.data.data;
+  return request<ApiEnvelope<PageEnvelope<StaffOption>>>(
+    { url: '/api/users', params: { page: 1, pageSize: 500 } },
+    () => ({
+      success: true,
+      message: 'Demo data',
+      data: {
+        items: demoState.users.map((u) => ({
+          id: Number(u.id.replace(/\D/g, '')) || 0,
+          fullName: u.fullName,
+          employeeCode: u.id,
+          jobLevel: 'STAFF',
+          functionName: u.department,
+          business: null,
+          roles: u.roles,
+        })),
+        page: 1,
+        pageSize: 500,
+        total: demoState.users.length,
+        totalPages: 1,
+      },
+    })
+  ).then((res) => res.data.items);
 }

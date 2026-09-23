@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { Skeleton } from '../ui/Skeleton';
 
@@ -19,7 +20,9 @@ export interface DataTableProps<T> {
   skeletonRows?: number;
   empty?: React.ReactNode;
   toolbar?: React.ReactNode;
+  footer?: React.ReactNode;
   onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string;
   caption?: string;
 }
 
@@ -29,6 +32,8 @@ const ALIGN = {
   center: 'text-center'
 };
 
+const MAX_STAGGER_ROWS = 10;
+
 export function DataTable<T>({
   columns,
   rows,
@@ -37,7 +42,9 @@ export function DataTable<T>({
   skeletonRows = 6,
   empty,
   toolbar,
+  footer,
   onRowClick,
+  rowClassName,
   caption
 }: DataTableProps<T>) {
   const showEmpty = !loading && rows.length === 0;
@@ -84,9 +91,16 @@ export function DataTable<T>({
               )}
                     </tr>
             ) :
-            rows.map((row) =>
-            <tr
+            rows.map((row, rowIndex) =>
+            <motion.tr
               key={getRowId(row)}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.28,
+                ease: [0.23, 1, 0.32, 1],
+                delay: Math.min(rowIndex, MAX_STAGGER_ROWS) * 0.035
+              }}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               tabIndex={onRowClick ? 0 : undefined}
               onKeyDown={
@@ -98,14 +112,15 @@ export function DataTable<T>({
               }
               className={cn(
                 'border-b border-line transition-colors duration-150 ease-out last:border-0',
-                onRowClick && 'cursor-pointer hover:bg-surface-muted/70'
+                onRowClick && 'cursor-pointer hover:bg-surface-muted/70',
+                rowClassName?.(row)
               )}>
               
                       {columns.map((column) =>
               <td
                 key={column.key}
                 className={cn(
-                  'px-4 py-3.5 align-middle text-fg-muted',
+                  'px-4 py-4 align-middle text-fg-muted',
                   ALIGN[column.align ?? 'left'],
                   column.className
                 )}>
@@ -113,11 +128,15 @@ export function DataTable<T>({
                           {column.render(row)}
                         </td>
               )}
-                    </tr>
+                    </motion.tr>
             )}
             </tbody>
           </table>
         </div>
+      }
+
+      {footer && !showEmpty &&
+      <div className="border-t border-line px-4 py-3">{footer}</div>
       }
     </section>);
 

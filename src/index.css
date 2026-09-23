@@ -23,6 +23,8 @@
   --brand-strong: 67 56 202;
   --brand-soft: 238 242 255;
   --brand-text: 67 56 202;
+  --gradient-start: 30 75 191;
+  --gradient-end: 22 56 155;
   --success: 16 185 129;
   --success-soft: 236 253 245;
   --success-text: 4 120 87;
@@ -48,6 +50,8 @@
   --brand-strong: 165 180 252;
   --brand-soft: 42 43 92;
   --brand-text: 199 210 254;
+  --gradient-start: 70 115 231;
+  --gradient-end: 62 96 195;
   --success: 52 211 153;
   --success-soft: 6 60 48;
   --success-text: 110 231 183;
