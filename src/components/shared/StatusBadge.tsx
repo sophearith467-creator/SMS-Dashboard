@@ -8,13 +8,16 @@ type AnyStatus = MissionStatus | RecordStatus | 'ACTIVE' | 'INVITED' | 'SUSPENDE
 
 const TONE_BY_STATUS: Record<string, BadgeTone> = {
   DRAFT: 'neutral',
-  PENDING: 'warning',
   SUBMITTED: 'brand',
-  UNDER_REVIEW: 'warning',
+  FM_REVIEW: 'warning',
+  HRBP_REVIEW: 'warning',
+  FINANCE_REVIEW: 'warning',
+  BIZOPS_REVIEW: 'warning',
+  EXECUTIVE_REVIEW: 'warning',
   APPROVED: 'success',
   REJECTED: 'danger',
-  IN_PROGRESS: 'brand',
-  COMPLETED: 'success',
+  CANCELLED: 'neutral',
+  REPORT_SUBMITTED: 'brand',
   SETTLED: 'neutral',
   PAID: 'success',
   ACTIVE: 'success',
@@ -22,10 +25,10 @@ const TONE_BY_STATUS: Record<string, BadgeTone> = {
   SUSPENDED: 'danger'
 };
 
-export function StatusBadge({ status }: {status: AnyStatus;}) {
+export function StatusBadge({ status }: { status: AnyStatus }) {
   return (
     <Badge tone={TONE_BY_STATUS[status] ?? 'neutral'} dot>
       {titleCase(status)}
-    </Badge>);
-
+    </Badge>
+  );
 }

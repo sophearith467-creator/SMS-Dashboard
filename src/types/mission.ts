@@ -1,67 +1,81 @@
-import type { Role } from './auth';
+export type JobLevel =
+  | 'EXECUTIVE'
+  | 'FUNCTION_MANAGER'
+  | 'SUB_FUNCTION_MANAGER'
+  | 'STAFF'
+  | 'DRIVER';
+
+export type LocationTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
 
 export type MissionStatus =
-'DRAFT' |
-'PENDING' |
-'APPROVED' |
-'REJECTED' |
-'IN_PROGRESS' |
-'COMPLETED' |
-'SETTLED';
-
-export type TransportMode = 'AIR' | 'ROAD' | 'RAIL' | 'COMPANY_VEHICLE';
+  | 'DRAFT' | 'SUBMITTED'
+  | 'FM_REVIEW' | 'HRBP_REVIEW' | 'FINANCE_REVIEW' | 'BIZOPS_REVIEW' | 'EXECUTIVE_REVIEW'
+  | 'APPROVED' | 'REJECTED' | 'CANCELLED'
+  | 'REPORT_SUBMITTED' | 'SETTLED';
 
 export type ApprovalStage =
-'FUNCTION_MANAGER' |
-'HRBP' |
-'FINANCE' |
-'BIZOPS' |
-'EXECUTIVE';
-
-export type ApprovalDecision = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SKIPPED';
-
-export interface ApprovalStep {
-  id: string;
-  stage: ApprovalStage;
-  approverName: string;
-  approverRole: Role;
-  decision: ApprovalDecision;
-  decidedAt?: string;
-  comment?: string;
-}
+  | 'FUNCTION_MANAGER' | 'HRBP' | 'FINANCE' | 'BIZOPS' | 'EXECUTIVE';
 
 export interface Mission {
-  id: string;
-  reference: string;
-  title: string;
-  purpose: string;
-  requesterId: string;
+  id: number;
+  missionCode: string | null;
+  requesterId: number;
   requesterName: string;
-  department: string;
-  destination: string;
-  country: string;
-  startDate: string;
-  endDate: string;
+  position: string;
+  functionName: string;
+  business: string;
+  jobLevel: JobLevel;
+  basedLocation: string;
+  destinationLocation: string;
+  locationTier: LocationTier;
+  travelObjectives: string;
+
+  departureDate: string;
+  departureTime: string | null;
+  arrivalDate: string;
+  arrivalTime: string | null;
+  numberOfTravelDays: number;
+
+  breakfastAmount: number | null;
+  breakfastQuantity: number | null;
+  breakfastTotal: number | null;
+  lunchAmount: number | null;
+  lunchQuantity: number | null;
+  lunchTotal: number | null;
+  dinnerAmount: number | null;
+  dinnerQuantity: number | null;
+  dinnerTotal: number | null;
+
+  accommodationAmountPerNight: number | null;
+  numberOfNightStay: number | null;
+  accommodationTotal: number | null;
+
+  totalExpense: number | null;
+  description: string | null;
+
   status: MissionStatus;
-  transport: TransportMode;
-  estimatedCost: number;
-  currency: string;
+  currentApprovalStep: ApprovalStage | null;
+
   createdAt: string;
-  priority: 'LOW' | 'NORMAL' | 'HIGH';
-  approvals: ApprovalStep[];
+  updatedAt: string;
 }
 
 export interface MissionInput {
-  title: string;
-  purpose: string;
-  department: string;
-  destination: string;
-  country: string;
-  startDate: string;
-  endDate: string;
-  transport: TransportMode;
-  estimatedCost: number;
-  priority: 'LOW' | 'NORMAL' | 'HIGH';
+  position: string;
+  functionName: string;
+  business: string;
+  jobLevel: JobLevel;
+  basedLocation: string;
+  destinationLocation: string;
+  locationTier: LocationTier;
+  travelObjectives: string;
+  departureDate: string;
+  departureTime?: string;
+  arrivalDate: string;
+  arrivalTime?: string;
+  numberOfTravelDays: number;
+  description?: string;
+  onBehalfOfUserId?: number;
 }
 
 export interface AllowanceLine {
@@ -71,7 +85,7 @@ export interface AllowanceLine {
 }
 
 export interface AllowanceBreakdown {
-  missionId: string;
+  missionId: number;
   reference: string;
   days: number;
   currency: string;
@@ -79,10 +93,4 @@ export interface AllowanceBreakdown {
   lines: AllowanceLine[];
   total: number;
   calculatedAt: string;
-}
-
-export interface ApprovalActionInput {
-  missionId: string;
-  decision: 'APPROVED' | 'REJECTED';
-  comment?: string;
 }

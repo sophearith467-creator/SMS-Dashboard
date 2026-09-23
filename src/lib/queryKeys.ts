@@ -10,6 +10,10 @@ export const queryKeys = {
     detail: (id: string) => ['missions', id] as const,
     allowance: (id: string) => ['missions', id, 'allowances'] as const
   },
+  approvals: {
+    pending: ['approvals', 'pending'] as const,
+    history: (missionId: number) => ['approvals', missionId, 'history'] as const
+  },
   annexes: {
     activityReports: ['annexes', 'activity-reports'] as const,
     vehicleRequests: ['annexes', 'vehicle-requests'] as const,

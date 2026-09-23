@@ -1,43 +1,31 @@
-import type { AuthUser } from '../types/auth';
-import type {
-  AllowanceBreakdown,
-  ApprovalActionInput,
-  Mission,
-  MissionInput } from
-'../types/mission';
-import { request } from './client';
-import { calculateAllowance, createMission, decideMission, getMission, listMissions } from './demoStore';
+import type { Mission, MissionInput } from '../types/mission';
+import { http, request } from './client';
 
 export async function fetchMissions(): Promise<Mission[]> {
-  return request<Mission[]>({ url: '/api/missions' }, listMissions);
+  return request<Mission[]>({ url: '/api/missions' }, () => []);
 }
 
-export async function fetchMission(id: string): Promise<Mission> {
-  return request<Mission>({ url: `/api/missions/${id}` }, () => getMission(id));
+export async function fetchMission(id: number): Promise<Mission> {
+  return request<Mission>({ url: `/api/missions/${id}` }, () => {
+    throw new Error('Mission not found');
+  });
 }
 
-export async function fetchMissionAllowance(id: string): Promise<AllowanceBreakdown> {
-  return request<AllowanceBreakdown>({ url: `/api/missions/${id}/allowances` }, () =>
-  calculateAllowance(id)
-  );
+export async function fetchMissionAllowance(id: number): Promise<Mission> {
+  const res = await http.get<Mission>(`/api/missions/${id}/allowances`);
+  return res.data;
 }
 
-export async function submitMission(input: MissionInput, user: AuthUser): Promise<Mission> {
-  return request<Mission>({ url: '/api/missions', method: 'POST', data: input }, () =>
-  createMission(input, { id: user.id, fullName: user.fullName })
-  );
+export async function submitMission(input: MissionInput): Promise<Mission> {
+  const res = await http.post<Mission>('/api/missions', input);
+  return res.data;
 }
 
-export async function submitApprovalDecision(
-input: ApprovalActionInput,
-user: AuthUser)
-: Promise<Mission> {
-  return request<Mission>(
-    {
-      url: `/api/missions/${input.missionId}/approvals`,
-      method: 'POST',
-      data: { decision: input.decision, comment: input.comment }
-    },
-    () => decideMission(input, { fullName: user.fullName })
-  );
+export async function updateMission(id: number, input: Partial<MissionInput>): Promise<Mission> {
+  const res = await http.put<Mission>(`/api/missions/${id}`, input);
+  return res.data;
+}
+
+export async function deleteMission(id: number): Promise<void> {
+  await http.delete(`/api/missions/${id}`);
 }
