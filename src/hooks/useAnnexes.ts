@@ -39,7 +39,7 @@ export function useAnnexStatusUpdate(kind: AnnexKind) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, status }: {id: string;status: RecordStatus;}) =>
+    mutationFn: ({ id, status }: { id: number; status: RecordStatus }) =>
     updateAnnexStatus(kind, id, status),
     onSuccess: ({ status }) => {
       queryClient.invalidateQueries({ queryKey: KEY_BY_KIND[kind] });

@@ -31,6 +31,7 @@ export function useSubmitMission() {
     mutationFn: (id: number) => submitMission(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.missions.all });
+      qc.invalidateQueries({ queryKey: queryKeys.approvals.pending });
     },
   });
 }
@@ -40,9 +41,10 @@ export function useApproveMission() {
   return useMutation({
     mutationFn: ({ id, comment }: { id: number; comment?: string }) =>
       approveMission(id, { comment }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: queryKeys.missions.all });
       qc.invalidateQueries({ queryKey: queryKeys.approvals.pending });
+      qc.invalidateQueries({ queryKey: queryKeys.approvals.history(variables.id) });
     },
   });
 }
@@ -52,9 +54,10 @@ export function useRejectMission() {
   return useMutation({
     mutationFn: ({ id, comment }: { id: number; comment?: string }) =>
       rejectMission(id, { comment }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: queryKeys.missions.all });
       qc.invalidateQueries({ queryKey: queryKeys.approvals.pending });
+      qc.invalidateQueries({ queryKey: queryKeys.approvals.history(variables.id) });
     },
   });
 }

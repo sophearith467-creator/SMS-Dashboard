@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeftIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CheckIcon,
-  MapPinIcon, PencilIcon, SearchXIcon, TrashIcon, UserIcon, XIcon
+  MapPinIcon, PencilIcon, SearchXIcon, SendIcon, TrashIcon, UserIcon, XIcon
 } from 'lucide-react';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatusBadge } from '../components/shared/StatusBadge';
@@ -17,7 +17,7 @@ import { ApprovalChainPanel } from '../components/missions/ApprovalChainPanel';
 import { DecisionDialog, type DecisionTarget } from '../components/missions/DecisionDialog';
 import { MissionFormModal } from '../components/missions/MissionFormModal';
 import { useMission, useMissionAllowance, useDeleteMission } from '../hooks/useMissions';
-import { useApprovalHistory } from '../hooks/useApprovals';
+import { useApprovalHistory, useSubmitMission } from '../hooks/useApprovals';
 import { useAuth } from '../context/AuthContext';
 import { APPROVER_ROLES } from '../lib/roles';
 import { formatDate } from '../lib/utils';
@@ -33,9 +33,11 @@ export function MissionDetail() {
   const allowance = useMissionAllowance(missionId);
   const approvals = useApprovalHistory(missionId ?? 0);
   const deleteMission = useDeleteMission();
+  const submitMission = useSubmitMission();
   const [decision, setDecision] = useState<'APPROVED' | 'REJECTED' | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -71,6 +73,7 @@ export function MissionDetail() {
   const isAdmin = can(['ROLE_ADMIN']);
   const isOwnerDraft = mission.requesterId === Number(user?.id) && mission.status === 'DRAFT';
   const canManage = isAdmin || isOwnerDraft;
+  const canSubmit = isOwnerDraft || (isAdmin && mission.status === 'DRAFT');
 
   const target: DecisionTarget = {
     missionId: mission.id,
@@ -93,6 +96,12 @@ export function MissionDetail() {
     if (!mission) return;
     await deleteMission.mutateAsync(mission.id);
     navigate('/missions');
+  }
+
+  async function handleConfirmSubmit() {
+    if (!mission) return;
+    await submitMission.mutateAsync(mission.id);
+    setSubmitOpen(false);
   }
 
   return (
@@ -140,6 +149,11 @@ export function MissionDetail() {
                 Delete
               </Button>
             </>
+          )}
+          {canSubmit && (
+            <Button icon={SendIcon} onClick={() => setSubmitOpen(true)}>
+              Submit for approval
+            </Button>
           )}
           {canDecide && (
             <>
@@ -231,6 +245,17 @@ export function MissionDetail() {
         loading={deleteMission.isPending}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={submitOpen}
+        tone="default"
+        title="Submit this mission for approval?"
+        message={`${mission.missionCode ?? 'This mission'} will enter the approval chain, starting with the function manager. You won't be able to edit it while it's under review.`}
+        confirmLabel="Submit"
+        loading={submitMission.isPending}
+        onConfirm={handleConfirmSubmit}
+        onCancel={() => setSubmitOpen(false)}
       />
     </PageTransition>
   );
