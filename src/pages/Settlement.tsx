@@ -1,15 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { MoreHorizontalIcon, ReceiptTextIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  BanknoteIcon,
+  CheckIcon,
+  EyeIcon,
+  MoreHorizontalIcon,
+  ReceiptTextIcon,
+  SearchIcon
+} from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { DataTable, type Column } from '../components/shared/DataTable';
+import { Badge } from '../components/ui/Badge';
 import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
-import { Skeleton } from '../components/ui/Skeleton';
+import { Input } from '../components/ui/Input';
 import { useAnnexStatusUpdate, useSettlements } from '../hooks/useAnnexes';
-import { cn, formatCurrency, formatDate, titleCase } from '../lib/utils';
+import { formatCurrency, formatDate, titleCase } from '../lib/utils';
 import type { SettlementRecord, SettlementStatus } from '../types/annex';
 
 type Filter = 'ALL' | SettlementStatus;
@@ -20,12 +29,23 @@ export function Settlement() {
   const { data, isLoading } = useSettlements();
   const updateStatus = useAnnexStatusUpdate('settlements');
   const [filter, setFilter] = useState<Filter>('ALL');
+  const [search, setSearch] = useState('');
 
   const settlements = data ?? [];
-  const rows = useMemo(
-    () => settlements.filter((record) => filter === 'ALL' || record.status === filter),
-    [settlements, filter]
-  );
+
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return settlements.filter((record) => {
+      const matchesFilter = filter === 'ALL' || record.status === filter;
+      const matchesSearch =
+        !q ||
+        [`STL-${record.id}`, `MSN-${record.missionId}`, record.notes ?? '']
+          .join(' ')
+          .toLowerCase()
+          .includes(q);
+      return matchesFilter && matchesSearch;
+    });
+  }, [settlements, filter, search]);
 
   const open = settlements.filter((record) => record.status !== 'PAID');
   const totalOutstanding = open.reduce((sum, r) => sum + r.grandTotal, 0);
@@ -36,15 +56,29 @@ export function Settlement() {
       header: 'Settlement',
       render: (record) => (
         <div className="min-w-0">
-          <span className="font-mono text-[11.5px] text-fg-subtle">STL-{record.id}</span>
-          <p className="mt-0.5 truncate text-[13.5px] font-medium text-fg">Mission MSN-{record.missionId}</p>
+          <Link
+            to={`/missions/${record.missionId}`}
+            className="truncate text-[13.5px] font-medium tracking-[-0.01em] text-fg transition-colors duration-150 ease-out hover:text-brand-text"
+          >
+            Mission MSN-{record.missionId}
+          </Link>
+          <p className="mt-0.5 font-mono text-[11px] text-fg-subtle">STL-{record.id}</p>
         </div>
       )
     },
     {
-      key: 'created',
-      header: 'Created',
-      render: (record) => <span className="text-[13px] text-fg">{formatDate(record.createdAt)}</span>
+      key: 'date',
+      header: 'Date',
+      render: (record) => (
+        <div>
+          <p className="text-[13px] tabular-nums text-fg">
+            {record.settledAt ? formatDate(record.settledAt) : formatDate(record.createdAt)}
+          </p>
+          <p className="mt-0.5 text-[12px] text-fg-subtle">
+            {record.settledAt ? 'Settled' : 'Created'}
+          </p>
+        </div>
+      )
     },
     {
       key: 'allowance',
@@ -88,17 +122,24 @@ export function Settlement() {
       align: 'right',
       render: (record) => (
         <DropdownMenu
+          width="w-52"
           items={[
             {
               label: 'Start review',
+              icon: EyeIcon,
+              disabled: ['UNDER_REVIEW', 'APPROVED', 'PAID'].includes(record.status),
               onSelect: () => updateStatus.mutate({ id: record.id, status: 'UNDER_REVIEW' })
             },
             {
               label: 'Approve settlement',
+              icon: CheckIcon,
+              disabled: record.status === 'APPROVED' || record.status === 'PAID',
               onSelect: () => updateStatus.mutate({ id: record.id, status: 'APPROVED' })
             },
             {
               label: 'Mark as paid',
+              icon: BanknoteIcon,
+              disabled: record.status === 'PAID',
               onSelect: () => updateStatus.mutate({ id: record.id, status: 'PAID' })
             }
           ]}
@@ -122,41 +163,46 @@ export function Settlement() {
       <PageHeader
         title="Settlement"
         description="Reconcile mission allowances against mileage claims and close out the financial record."
+        meta={
+          !isLoading && (
+            <>
+              <Badge tone={open.length > 0 ? 'warning' : 'success'} dot>
+                {formatCurrency(totalOutstanding, 'USD')} outstanding
+              </Badge>
+              <Badge tone="neutral">{open.length} open</Badge>
+            </>
+          )
+        }
       />
 
-      <div className="mb-4 grid gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-soft sm:grid-cols-2">
-        <div className="bg-surface px-5 py-4">
-          <p className="text-[12.5px] text-fg-muted">Open settlements</p>
-          {isLoading ? (
-            <Skeleton className="mt-2 h-6 w-24" />
-          ) : (
-            <p className="mt-1 text-xl font-semibold tabular-nums tracking-[-0.02em] text-fg">{open.length}</p>
-          )}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="overflow-x-auto pb-1">
+          <FilterTabs
+            ariaLabel="Filter settlements"
+            layoutId="settlement-filter"
+            value={filter}
+            onChange={setFilter}
+            options={FILTERS.map((value) => ({
+              value,
+              label: value === 'ALL' ? 'All' : titleCase(value),
+              count:
+                value === 'ALL'
+                  ? settlements.length
+                  : settlements.filter((r) => r.status === value).length
+            }))}
+          />
         </div>
-        <div className="bg-surface px-5 py-4">
-          <p className="text-[12.5px] text-fg-muted">Outstanding total</p>
-          {isLoading ? (
-            <Skeleton className="mt-2 h-6 w-24" />
-          ) : (
-            <p className="mt-1 text-xl font-semibold tabular-nums tracking-[-0.02em] text-danger-text">
-              {formatCurrency(totalOutstanding, 'USD')}
-            </p>
-          )}
+        <div className="w-full sm:w-72">
+          <Input
+            type="search"
+            icon={SearchIcon}
+            aria-label="Search settlements"
+            placeholder="Search settlement, mission, notes…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-9"
+          />
         </div>
-      </div>
-
-      <div className="mb-4 overflow-x-auto pb-1">
-        <FilterTabs
-          ariaLabel="Filter settlements"
-          layoutId="settlement-filter"
-          value={filter}
-          onChange={setFilter}
-          options={FILTERS.map((value) => ({
-            value,
-            label: value === 'ALL' ? 'All' : titleCase(value),
-            count: value === 'ALL' ? settlements.length : settlements.filter((r) => r.status === value).length
-          }))}
-        />
       </div>
 
       <DataTable

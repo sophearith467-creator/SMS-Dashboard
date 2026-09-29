@@ -19,6 +19,25 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value);
 }
 
+/** Format a duration given in hours into a short human label. */
+export function formatDurationHours(hours: number): string {
+  if (!Number.isFinite(hours) || hours < 0) return '—';
+  if (hours === 0) return '< 1 min';
+
+  const totalMinutes = Math.round(hours * 60);
+
+  if (totalMinutes < 60) {
+    return totalMinutes <= 1 ? '1 min' : `${totalMinutes} min`;
+  }
+
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+
+  if (h < 10 && m > 0) return `${h}h ${m}m`;
+  if (h < 10) return `${h}h`;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
 export function formatDate(iso: string, pattern = 'MMM d, yyyy'): string {
   try {
     return format(parseISO(iso), pattern);
@@ -32,9 +51,9 @@ export function formatDateRange(start: string, end: string): string {
     const s = parseISO(start);
     const e = parseISO(end);
     const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear();
-    return sameMonth ?
-    `${format(s, 'MMM d')} – ${format(e, 'd, yyyy')}` :
-    `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
+    return sameMonth
+      ? `${format(s, 'MMM d')} – ${format(e, 'd, yyyy')}`
+      : `${format(s, 'MMM d')} – ${format(e, 'MMM d, yyyy')}`;
   } catch {
     return `${start} – ${end}`;
   }
@@ -57,20 +76,21 @@ export function durationInDays(start: string, end: string): number {
 }
 
 export function initials(fullName: string): string {
-  return fullName.
-  split(' ').
-  filter(Boolean).
-  slice(0, 2).
-  map((part) => part[0]?.toUpperCase() ?? '').
-  join('');
+  return fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
 }
 
-export function titleCase(value: string): string {
-  return value.
-  toLowerCase().
-  split('_').
-  map((word) => word.charAt(0).toUpperCase() + word.slice(1)).
-  join(' ');
+export function titleCase(value: string | null | undefined): string {
+  if (!value) return '';
+  return value
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 export function sleep(ms: number): Promise<void> {

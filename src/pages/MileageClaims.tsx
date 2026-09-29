@@ -1,35 +1,97 @@
 import React, { useMemo, useState } from 'react';
-import { MoreHorizontalIcon, RouteIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  BanknoteIcon,
+  CheckIcon,
+  MoreHorizontalIcon,
+  RouteIcon,
+  SearchIcon,
+  XIcon
+} from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { DataTable, type Column } from '../components/shared/DataTable';
-import { Badge } from '../components/ui/Badge';
 import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
+import { Input } from '../components/ui/Input';
+import { Skeleton } from '../components/ui/Skeleton';
 import { useAnnexStatusUpdate, useMileageClaims } from '../hooks/useAnnexes';
-import { formatCurrency, formatDate, formatNumber, titleCase } from '../lib/utils';
+import { cn, formatCurrency, formatDateRange, formatNumber, titleCase } from '../lib/utils';
 import type { MileageClaim, MileageClaimStatus } from '../types/annex';
 
 type Filter = 'ALL' | MileageClaimStatus;
 
 const FILTERS: Filter[] = ['ALL', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'PAID'];
 
+interface StatProps {
+  label: string;
+  value: string;
+  caption: string;
+  loading?: boolean;
+  tone?: 'default' | 'warning' | 'success';
+}
+
+function Stat({ label, value, caption, loading, tone = 'default' }: StatProps) {
+  return (
+    <div className="bg-surface px-5 py-4">
+      <div className="flex items-center gap-2">
+        {tone !== 'default' && (
+          <span
+            aria-hidden
+            className={cn(
+              'h-1.5 w-1.5 rounded-full',
+              tone === 'warning' ? 'bg-warning-text' : 'bg-success-text'
+            )}
+          />
+        )}
+        <p className="text-[12px] font-medium text-fg-muted">{label}</p>
+      </div>
+      {loading ? (
+        <Skeleton className="mt-2 h-7 w-28" />
+      ) : (
+        <p className="mt-1.5 text-[22px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-fg">
+          {value}
+        </p>
+      )}
+      <p className="mt-2 text-[12px] text-fg-subtle">{caption}</p>
+    </div>
+  );
+}
+
 export function MileageClaims() {
   const { data, isLoading } = useMileageClaims();
   const updateStatus = useAnnexStatusUpdate('mileage-claims');
   const [filter, setFilter] = useState<Filter>('ALL');
+  const [search, setSearch] = useState('');
 
   const claims = data ?? [];
-  const rows = useMemo(
-    () => claims.filter((claim) => filter === 'ALL' || claim.status === filter),
-    [claims, filter]
-  );
 
-  const outstanding = claims
-    .filter((claim) => claim.status !== 'PAID')
-    .reduce((sum, claim) => sum + claim.totalClaimAmount, 0);
+  const rows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return claims.filter((claim) => {
+      const matchesFilter = filter === 'ALL' || claim.status === filter;
+      const matchesSearch =
+        !q ||
+        [
+          claim.requesterName,
+          claim.travelObjectives,
+          claim.destinationLocation ?? '',
+          `CLM-${claim.id}`,
+          `MSN-${claim.missionId}`
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(q);
+      return matchesFilter && matchesSearch;
+    });
+  }, [claims, filter, search]);
+
+  const unpaid = claims.filter((claim) => claim.status !== 'PAID');
+  const paid = claims.filter((claim) => claim.status === 'PAID');
+  const outstanding = unpaid.reduce((sum, claim) => sum + claim.totalClaimAmount, 0);
+  const paidTotal = paid.reduce((sum, claim) => sum + claim.totalClaimAmount, 0);
   const totalDistance = claims.reduce((sum, claim) => sum + claim.totalDistanceKm, 0);
 
   const columns: Array<Column<MileageClaim>> = [
@@ -37,23 +99,42 @@ export function MileageClaims() {
       key: 'claim',
       header: 'Claim',
       render: (claim) => (
-        <div>
-          <span className="font-mono text-[11.5px] text-fg-subtle">CLM-{claim.id}</span>
-          <p className="mt-0.5 text-[13.5px] font-medium text-fg">{claim.requesterName}</p>
+        <div className="min-w-0 max-w-[280px]">
+          <p className="truncate text-[13.5px] font-medium tracking-[-0.01em] text-fg">
+            {claim.travelObjectives || 'Mileage claim'}
+          </p>
+          <p className="mt-0.5 font-mono text-[11px] text-fg-subtle">CLM-{claim.id}</p>
+        </div>
+      )
+    },
+    {
+      key: 'requester',
+      header: 'Requester',
+      render: (claim) => (
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-medium text-fg">{claim.requesterName}</p>
+          <p className="mt-0.5 text-[12px] text-fg-subtle">{claim.destinationLocation ?? '—'}</p>
         </div>
       )
     },
     {
       key: 'mission',
       header: 'Mission',
-      render: (claim) => <span className="font-mono text-[12px] text-fg">MSN-{claim.missionId}</span>
+      render: (claim) => (
+        <Link
+          to={`/missions/${claim.missionId}`}
+          className="font-mono text-[12px] text-brand-text transition-colors duration-150 ease-out hover:text-brand"
+        >
+          MSN-{claim.missionId}
+        </Link>
+      )
     },
     {
       key: 'window',
-      header: 'Travel window',
+      header: 'Travel period',
       render: (claim) => (
-        <span className="text-[13px] text-fg">
-          {formatDate(claim.travelStartDate, 'MMM d')} – {formatDate(claim.travelEndDate, 'MMM d, yyyy')}
+        <span className="text-[13px] tabular-nums text-fg">
+          {formatDateRange(claim.travelStartDate, claim.travelEndDate)}
         </span>
       )
     },
@@ -62,7 +143,9 @@ export function MileageClaims() {
       header: 'Distance',
       align: 'right',
       render: (claim) => (
-        <span className="text-[13px] tabular-nums text-fg">{formatNumber(claim.totalDistanceKm)} km</span>
+        <span className="text-[13px] tabular-nums text-fg-muted">
+          {formatNumber(claim.totalDistanceKm)} km
+        </span>
       )
     },
     {
@@ -90,15 +173,21 @@ export function MileageClaims() {
           items={[
             {
               label: 'Approve claim',
+              icon: CheckIcon,
+              disabled: claim.status === 'APPROVED' || claim.status === 'PAID',
               onSelect: () => updateStatus.mutate({ id: claim.id, status: 'APPROVED' })
             },
             {
               label: 'Mark as paid',
+              icon: BanknoteIcon,
+              disabled: claim.status === 'PAID',
               onSelect: () => updateStatus.mutate({ id: claim.id, status: 'PAID' })
             },
             {
               label: 'Reject claim',
+              icon: XIcon,
               tone: 'danger',
+              disabled: claim.status === 'REJECTED' || claim.status === 'PAID',
               onSelect: () => updateStatus.mutate({ id: claim.id, status: 'REJECTED' })
             }
           ]}
@@ -122,28 +211,59 @@ export function MileageClaims() {
       <PageHeader
         title="Mileage Claims"
         description="Annex D personal and company vehicle mileage submitted for reimbursement."
-        meta={
-          <>
-            <Badge tone="warning" dot>
-              {formatCurrency(outstanding, 'USD')} outstanding
-            </Badge>
-            <Badge tone="neutral">{formatNumber(totalDistance)} km claimed</Badge>
-          </>
-        }
       />
 
-      <div className="mb-4 overflow-x-auto pb-1">
-        <FilterTabs
-          ariaLabel="Filter mileage claims"
-          layoutId="mileage-filter"
-          value={filter}
-          onChange={setFilter}
-          options={FILTERS.map((value) => ({
-            value,
-            label: value === 'ALL' ? 'All' : titleCase(value),
-            count: value === 'ALL' ? claims.length : claims.filter((c) => c.status === value).length
-          }))}
+      <div className="mb-5 grid gap-px overflow-hidden rounded-2xl border border-line bg-line shadow-soft sm:grid-cols-3">
+        <Stat
+          label="Outstanding"
+          tone="warning"
+          loading={isLoading}
+          value={formatCurrency(outstanding, 'USD')}
+          caption={`${unpaid.length} ${unpaid.length === 1 ? 'claim' : 'claims'} awaiting payment`}
         />
+        <Stat
+          label="Paid"
+          tone="success"
+          loading={isLoading}
+          value={formatCurrency(paidTotal, 'USD')}
+          caption={`${paid.length} ${paid.length === 1 ? 'claim' : 'claims'} settled`}
+        />
+        <Stat
+          label="Distance claimed"
+          loading={isLoading}
+          value={`${formatNumber(totalDistance)} km`}
+          caption={`Across ${claims.length} ${claims.length === 1 ? 'claim' : 'claims'}`}
+        />
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="overflow-x-auto pb-1">
+          <FilterTabs
+            ariaLabel="Filter mileage claims"
+            layoutId="mileage-filter"
+            value={filter}
+            onChange={setFilter}
+            options={FILTERS.map((value) => ({
+              value,
+              label: value === 'ALL' ? 'All' : titleCase(value),
+              count:
+                value === 'ALL'
+                  ? claims.length
+                  : claims.filter((c) => c.status === value).length
+            }))}
+          />
+        </div>
+        <div className="w-full sm:w-72">
+          <Input
+            type="search"
+            icon={SearchIcon}
+            aria-label="Search mileage claims"
+            placeholder="Search requester, objective, mission…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="h-9"
+          />
+        </div>
       </div>
 
       <DataTable
