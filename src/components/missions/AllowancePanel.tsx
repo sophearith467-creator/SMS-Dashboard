@@ -44,7 +44,7 @@ export function AllowancePanel({ data, loading, onCalculate }: AllowancePanelPro
             <div className="min-w-0">
               <p className="text-[13.5px] font-medium text-fg">{line.label}</p>
               <p className="mt-0.5 text-[12.5px] text-fg-subtle">
-                {line.qty} x ${line.rate?.toFixed(2)}
+                {line.rate != null ? `${line.qty} x $${line.rate.toFixed(2)}` : "Combined for all travelers"}
               </p>
             </div>
             <span className="shrink-0 text-[13.5px] font-medium tabular-nums text-fg">
