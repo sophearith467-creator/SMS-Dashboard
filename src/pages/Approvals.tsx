@@ -1,30 +1,33 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
-  CheckIcon,
   InboxIcon,
-  MapPinIcon,
-  XIcon
+  MapPinIcon
 } from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { Badge } from '../components/ui/Badge';
-import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
 import { SkeletonText } from '../components/ui/Skeleton';
-import { DecisionDialog } from '../components/missions/DecisionDialog';
 import { usePendingApprovals } from '../hooks/useApprovals';
+import { useMissions } from '../hooks/useMissions';
+import { getApprovalHistory } from '../api/approvals';
+import { queryKeys } from '../lib/queryKeys';
 import { cn, formatDate, titleCase } from '../lib/utils';
 import type { PendingApprovalItem } from '../types/approval';
-
-interface DecisionTarget {
-  item: PendingApprovalItem;
-  decision: 'APPROVED' | 'REJECTED';
-}
+import type { ApprovalStage } from '../types/mission';
 
 type StageFilter = string;
+const APPROVAL_STAGES: ApprovalStage[] = [
+  'FUNCTION_MANAGER',
+  'HRBP',
+  'FINANCE',
+  'BIZOPS',
+  'EXECUTIVE',
+];
 
 function stageLabel(step: string | null | undefined): string {
   if (!step || step === 'UNASSIGNED') return 'Unassigned';
@@ -33,10 +36,35 @@ function stageLabel(step: string | null | undefined): string {
 
 export function Approvals() {
   const { data, isLoading } = usePendingApprovals();
-  const [target, setTarget] = useState<DecisionTarget | null>(null);
+  const { data: missions } = useMissions();
   const [stageFilter, setStageFilter] = useState<StageFilter>('ALL');
 
   const queue = data ?? [];
+  const recentlyApproved = useMemo(
+    () => (missions ?? [])
+      .filter((mission) => mission.status === 'APPROVED')
+      .sort((first, second) => second.updatedAt.localeCompare(first.updatedAt)),
+    [missions]
+  );
+  const historyQueries = useQueries({
+    queries: queue.map((item) => ({
+      queryKey: queryKeys.approvals.history(item.missionId),
+      queryFn: () => getApprovalHistory(item.missionId),
+    })),
+  });
+  const historyByMission = new Map(
+    queue.map((item, index) => [item.missionId, historyQueries[index]?.data ?? []])
+  );
+
+  function isFullyApproved(item: PendingApprovalItem): boolean {
+    if (item.status === 'APPROVED') return true;
+    const approvedStages = new Set(
+      (historyByMission.get(item.missionId) ?? [])
+        .filter((entry) => entry.decision === 'APPROVED')
+        .map((entry) => entry.step)
+    );
+    return APPROVAL_STAGES.every((approvalStage) => approvedStages.has(approvalStage));
+  }
 
   const stages = useMemo(() => {
     const counts = new Map<string, number>();
@@ -131,9 +159,6 @@ export function Approvals() {
                     {items.length}
                   </span>
                 </div>
-                <p className="hidden text-[12px] text-fg-subtle sm:block">
-                  Approving advances to the next stage
-                </p>
               </div>
 
               <ul className="space-y-2.5">
@@ -152,7 +177,39 @@ export function Approvals() {
                           <span className="font-mono text-[11.5px] text-fg-subtle">
                             {item.missionCode ?? `MSN-${item.missionId}`}
                           </span>
-                          <Badge tone="brand">{titleCase(item.status)}</Badge>
+                          {(() => {
+                            const history = historyByMission.get(item.missionId) ?? [];
+                            const approvedStages = new Set(
+                              history.filter((entry) => entry.decision === 'APPROVED').map((entry) => entry.step)
+                            );
+                            const allApproved = isFullyApproved(item);
+                            const status = allApproved ? 'APPROVED' : item.status;
+                            return (
+                              <>
+                                <Badge tone={status === 'APPROVED' ? 'success' : 'brand'}>
+                                  {titleCase(status)}
+                                </Badge>
+                                <div className="flex flex-wrap gap-1.5" aria-label="Approval stages">
+                                  {APPROVAL_STAGES.map((approvalStage) => {
+                                    const complete = approvedStages.has(approvalStage);
+                                    return (
+                                      <span
+                                        key={approvalStage}
+                                        className={cn(
+                                          'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                                          complete
+                                            ? 'bg-success-soft text-success-text'
+                                            : 'bg-surface-muted text-fg-muted'
+                                        )}
+                                      >
+                                        {titleCase(approvalStage)}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              </>
+                            );
+                          })()}
                         </div>
 
                         <Link
@@ -179,23 +236,6 @@ export function Approvals() {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          icon={XIcon}
-                          onClick={() => setTarget({ item, decision: 'REJECTED' })}
-                        >
-                          Reject
-                        </Button>
-                        <Button
-                          size="sm"
-                          icon={CheckIcon}
-                          onClick={() => setTarget({ item, decision: 'APPROVED' })}
-                        >
-                          Approve
-                        </Button>
-                      </div>
                     </div>
                   </li>
                 ))}
@@ -205,11 +245,50 @@ export function Approvals() {
         </div>
       )}
 
-      <DecisionDialog
-        item={target?.item ?? null}
-        decision={target?.decision ?? 'APPROVED'}
-        onClose={() => setTarget(null)}
-      />
+      {!isLoading && recentlyApproved.length > 0 && (
+        <section className="mt-8 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-[13px] font-semibold text-fg">Recently approved</h2>
+            <Badge tone="success" dot>{recentlyApproved.length} approved</Badge>
+          </div>
+          <ul className="space-y-2.5">
+            {recentlyApproved.map((mission) => (
+              <li key={mission.id} className="rounded-2xl border border-line bg-surface p-4 shadow-soft">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[11.5px] text-fg-subtle">
+                        {mission.missionCode ?? `MSN-${mission.id}`}
+                      </span>
+                      <Badge tone="success">Approved</Badge>
+                    </div>
+                    <Link
+                      to={`/missions/${mission.id}`}
+                      className="mt-1.5 inline-flex text-[15px] font-semibold text-fg hover:text-brand-text"
+                    >
+                      {mission.requesterName}
+                    </Link>
+                    <p className="mt-1 text-[13px] text-fg-muted">
+                      {formatDate(mission.departureDate, 'MMM d')} – {formatDate(mission.arrivalDate, 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5" aria-label="All approval stages complete">
+                    {APPROVAL_STAGES.map((approvalStage) => (
+                      <span
+                        key={approvalStage}
+                        className="rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-medium text-success-text"
+                      >
+                        {titleCase(approvalStage)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
     </PageTransition>
   );
 }

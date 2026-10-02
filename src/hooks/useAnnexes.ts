@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import {
   fetchActivityReports,
   fetchMileageClaims,
+  fetchMissionVehicleRequest,
   fetchMissionVehicleRequests,
   fetchSettlements,
   fetchVehicleRequests,
@@ -29,6 +30,19 @@ export function useMissionVehicleRequests(missionId: number | undefined) {
       : queryKeys.missions.vehicleRequests(missionId),
     queryFn: () => fetchMissionVehicleRequests(missionId!),
     enabled: missionId != null,
+  });
+}
+
+export function useMissionVehicleRequest(
+  missionId: number | undefined,
+  vehicleRequestId: number | undefined
+) {
+  return useQuery({
+    queryKey: missionId == null || vehicleRequestId == null
+      ? ['missions', 'unknown', 'vehicle-request']
+      : queryKeys.missions.vehicleRequest(missionId, vehicleRequestId),
+    queryFn: () => fetchMissionVehicleRequest(missionId!, vehicleRequestId!),
+    enabled: missionId != null && vehicleRequestId != null,
   });
 }
 

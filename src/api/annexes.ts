@@ -46,6 +46,16 @@ export async function fetchMissionVehicleRequests(missionId: number): Promise<Ve
   return unwrap(res) ?? [];
 }
 
+export async function fetchMissionVehicleRequest(
+  missionId: number,
+  vehicleRequestId: number
+): Promise<VehicleRequest> {
+  const res = await http.get<ApiEnvelope<VehicleRequest> | VehicleRequest>(
+    `/api/missions/${missionId}/vehicle-requests/${vehicleRequestId}`
+  );
+  return unwrap(res.data);
+}
+
 export async function createVehicleRequest(
   missionId: number,
   input: CreateVehicleRequestInput
