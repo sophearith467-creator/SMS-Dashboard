@@ -17,6 +17,7 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   roles?: Role[];
+  hidden?: boolean;
   group: 'Overview' | 'Operations' | 'Finance' | 'Administration';
 }
 
@@ -32,12 +33,13 @@ export const NAV_ITEMS: NavItem[] = [
 },
 { to: '/activity-reports', label: 'Activity Reports', icon: ClipboardListIcon, group: 'Operations' },
 { to: '/vehicle-requests', label: 'Vehicle Requests', icon: CarFrontIcon, group: 'Operations' },
-{ to: '/mileage-claims', label: 'Mileage Claims', icon: RouteIcon, group: 'Finance' },
+{ to: '/mileage-claims', label: 'Mileage Claims', icon: RouteIcon, group: 'Finance', hidden: true },
 {
   to: '/settlement',
   label: 'Settlement',
   icon: ReceiptTextIcon,
   group: 'Finance',
+  hidden: true,
   roles: ['ROLE_FINANCE', 'ROLE_BIZOPS', 'ROLE_EXECUTIVE', 'ROLE_ADMIN']
 },
 {
