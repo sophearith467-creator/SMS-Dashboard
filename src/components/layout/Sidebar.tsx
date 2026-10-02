@@ -28,7 +28,7 @@ export function Sidebar({ onNavigate }: {onNavigate?: () => void;}) {
   const { theme, toggleTheme } = useTheme();
   const status = useBackendStatus();
 
-  const visible = NAV_ITEMS.filter((item) => can(item.roles));
+  const visible = NAV_ITEMS.filter((item) => !item.hidden && can(item.roles));
 
   return (
     <div className="flex h-full flex-col border-r border-line bg-surface">
