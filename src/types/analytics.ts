@@ -1,9 +1,10 @@
-export interface MissionSummary {
+﻿export interface MissionSummary {
   total: number;
   pending: number;
   approved: number;
   inProgress: number;
   completed: number;
+  reportSubmitted: number;
   rejected: number;
   changeVsLastMonthPct: number;
   trend: Array<{month: string;submitted: number;completed: number;}>;

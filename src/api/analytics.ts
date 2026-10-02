@@ -1,4 +1,4 @@
-import { ALLOWANCE_SPEND, APPROVAL_TURNAROUND, EXCEPTIONS, MISSION_SUMMARY } from '../data/analytics';
+﻿import { ALLOWANCE_SPEND, APPROVAL_TURNAROUND, EXCEPTIONS, MISSION_SUMMARY } from '../data/analytics';
 import type {
   AllowanceSpend,
   ApprovalTurnaround,
@@ -8,15 +8,21 @@ import type {
 import { request } from './client';
 import { demoState } from './demoStore';
 
+const PENDING_STATUSES = ['SUBMITTED', 'FM_REVIEW', 'HRBP_REVIEW', 'FINANCE_REVIEW', 'BIZOPS_REVIEW', 'EXECUTIVE_REVIEW'];
+
 export async function fetchMissionSummary(): Promise<MissionSummary> {
   return request<MissionSummary>({ url: '/api/analytics/missions/summary' }, () => {
-    const missions = demoState.missions;
+    const count = (statuses: string[]) =>
+      demoState.missions.filter((m) => statuses.includes(m.status as string)).length;
     return {
       ...MISSION_SUMMARY,
-      pending: missions.filter((m) => m.status === 'PENDING').length + 11,
-      approved: missions.filter((m) => m.status === 'APPROVED').length + 30,
-      inProgress: missions.filter((m) => m.status === 'IN_PROGRESS').length + 8,
-      rejected: missions.filter((m) => m.status === 'REJECTED').length + 5
+      total: demoState.missions.length,
+      pending: count(PENDING_STATUSES),
+      approved: count(['APPROVED']),
+      inProgress: count(PENDING_STATUSES),
+      completed: count(['SETTLED', 'REPORT_SUBMITTED']),
+      reportSubmitted: count(['REPORT_SUBMITTED']),
+      rejected: count(['REJECTED'])
     };
   });
 }
