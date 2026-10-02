@@ -43,16 +43,16 @@ export function MissionsHero({ total, inReview, approved, settled, onCreateMissi
             <p className="mt-1 text-[13.5px] text-white/75">
               Every mission request, from draft through settlement.
             </p>
+            <button
+              type="button"
+              onClick={onCreateMission}
+              className="mt-4 inline-flex h-10 w-fit items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-brand-strong shadow-pop transition-transform duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+            >
+              <PlusIcon size={16} aria-hidden />
+              New mission
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onCreateMission}
-            className="inline-flex h-10 w-fit items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-brand-strong shadow-pop transition-transform duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
-          >
-            <PlusIcon size={16} aria-hidden />
-            New mission
-          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

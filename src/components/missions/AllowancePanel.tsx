@@ -1,6 +1,5 @@
 import React from 'react';
 import { CalculatorIcon } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { EmptyState } from '../ui/EmptyState';
 import { SkeletonText } from '../ui/Skeleton';
 import type { Mission } from '../../types/mission';
@@ -8,24 +7,41 @@ import type { Mission } from '../../types/mission';
 export interface AllowancePanelProps {
   data?: Mission;
   loading: boolean;
-  onCalculate: () => void;
+  vehicleReimbursement?: number;
 }
 
-export function AllowancePanel({ data, loading, onCalculate }: AllowancePanelProps) {
-  if (loading) return <SkeletonText lines={6} />;
+export function AllowancePanel({ data, loading, vehicleReimbursement = 0 }: AllowancePanelProps) {
+  const vehicleReimbursementSummary = vehicleReimbursement > 0 && (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-line px-4 py-3">
+      <div>
+        <p className="text-[13.5px] font-medium text-fg">Personal car reimbursement</p>
+        <p className="mt-0.5 text-[12.5px] text-fg-subtle">Round-trip distance at $0.20/km</p>
+      </div>
+      <span className="shrink-0 text-[13.5px] font-medium tabular-nums text-fg">
+        ${vehicleReimbursement.toFixed(2)}
+      </span>
+    </div>
+  );
+
+  if (loading && (!data || data.totalExpense == null)) {
+    return (
+      <div className="space-y-4">
+        {vehicleReimbursementSummary}
+        <SkeletonText lines={4} />
+      </div>
+    );
+  }
 
   if (!data || data.totalExpense == null) {
     return (
-      <EmptyState
-        icon={CalculatorIcon}
-        title="Allowance not calculated yet"
-        description="Run the policy engine to break the entitlement down by meals and accommodation."
-        action={
-          <Button icon={CalculatorIcon} onClick={onCalculate}>
-            Calculate allowance
-          </Button>
-        }
-      />
+      <div className="space-y-4">
+        {vehicleReimbursementSummary}
+        <EmptyState
+          icon={CalculatorIcon}
+          title="Allowance not available yet"
+          description="The allowance breakdown will appear automatically when the calculation is available."
+        />
+      </div>
     );
   }
 
@@ -35,6 +51,7 @@ export function AllowancePanel({ data, loading, onCalculate }: AllowancePanelPro
     { label: 'Dinner', qty: data.dinnerQuantity, rate: data.dinnerAmount, total: data.dinnerTotal },
     { label: 'Accommodation', qty: data.numberOfNightStay, rate: data.accommodationAmountPerNight, total: data.accommodationTotal },
   ].filter((line) => line.total != null);
+  const totalEntitlement = data.totalExpense + vehicleReimbursement;
 
   return (
     <div>
@@ -52,23 +69,33 @@ export function AllowancePanel({ data, loading, onCalculate }: AllowancePanelPro
             </span>
           </li>
         ))}
+        {vehicleReimbursement > 0 && (
+          <li className="flex items-start justify-between gap-6 py-3">
+            <div className="min-w-0">
+              <p className="text-[13.5px] font-medium text-fg">Personal car reimbursement</p>
+              <p className="mt-0.5 text-[12.5px] text-fg-subtle">Round-trip distance at $0.20/km</p>
+            </div>
+            <span className="shrink-0 text-[13.5px] font-medium tabular-nums text-fg">
+              ${vehicleReimbursement.toFixed(2)}
+            </span>
+          </li>
+        )}
       </ul>
 
       <div className="mt-4 flex items-center justify-between rounded-xl bg-brand-soft px-4 py-3.5">
         <div>
           <p className="text-[13px] font-medium text-brand-text">Total entitlement</p>
-          <p className="text-[11.5px] text-brand-text/80">{data.numberOfTravelDays} days</p>
+          <p className="text-[11.5px] text-brand-text/80">
+            {vehicleReimbursement > 0
+              ? `${data.numberOfTravelDays} days + personal car reimbursement`
+              : `${data.numberOfTravelDays} days`}
+          </p>
         </div>
         <span className="text-xl font-semibold tabular-nums tracking-[-0.02em] text-brand-text">
-          ${data.totalExpense.toFixed(2)}
+          ${totalEntitlement.toFixed(2)}
         </span>
       </div>
 
-      <div className="mt-3 flex justify-end">
-        <Button variant="ghost" size="sm" icon={CalculatorIcon} onClick={onCalculate}>
-          Recalculate
-        </Button>
-      </div>
     </div>
   );
 }

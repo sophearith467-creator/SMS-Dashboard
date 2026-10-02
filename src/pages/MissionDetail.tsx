@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeftIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CarFrontIcon, CheckIcon,
+  ArrowLeftIcon, BriefcaseIcon, BuildingIcon, CalculatorIcon, CalendarIcon, CarFrontIcon, CheckIcon,
   ChevronDownIcon, ChevronUpIcon,
-  MapPinIcon, PencilIcon, SearchXIcon, SendIcon, TrashIcon, UserIcon, XIcon
+  LayersIcon, MapPinIcon, PencilIcon, SearchXIcon, SendIcon, TrashIcon, UserIcon, UsersIcon, XIcon
 } from 'lucide-react';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatusBadge } from '../components/shared/StatusBadge';
@@ -23,9 +23,16 @@ import { useApprovalHistory, useSubmitMission } from '../hooks/useApprovals';
 import { useMissionVehicleRequest, useMissionVehicleRequests } from '../hooks/useAnnexes';
 import { useAuth } from '../context/AuthContext';
 import { APPROVER_ROLES } from '../lib/roles';
-import { formatCurrency, formatDate } from '../lib/utils';
+import { formatDate, titleCase } from '../lib/utils';
 
 const REVIEW_STATUSES = ['SUBMITTED', 'FM_REVIEW', 'HRBP_REVIEW', 'FINANCE_REVIEW', 'BIZOPS_REVIEW', 'EXECUTIVE_REVIEW'];
+const VEHICLE_RATE_PER_KM = 0.2;
+const USD_FORMATTER = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
 export function MissionDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,11 +87,34 @@ export function MissionDetail() {
   const isOwnerDraft = mission.requesterId === Number(user?.id) && mission.status === 'DRAFT';
   const canManage = isAdmin || isOwnerDraft;
   const canSubmit = isOwnerDraft || (isAdmin && mission.status === 'DRAFT');
+  const missionInfo = allowance.data ?? mission;
+  const missionType = missionInfo.missionType ?? 'INDIVIDUAL';
+  const groupParticipants = missionInfo.participants ?? [];
   const transportValue = vehicleRequests.isLoading
     ? 'Loading…'
     : vehicleRequests.data?.length
-      ? 'Vehicle'
+      ? 'Personal car'
       : 'Not specified';
+  const totalVehicleDistanceKm = (vehicleRequests.data ?? []).reduce(
+    (total, request) => total + request.travelDetails.reduce((requestTotal, trip) => requestTotal + trip.distanceKm, 0),
+    0
+  );
+  const roundTripDistanceKm = totalVehicleDistanceKm * 2;
+  const vehicleReimbursement = roundTripDistanceKm * VEHICLE_RATE_PER_KM;
+  const vehicleCostValue = vehicleRequests.isLoading
+    ? 'Loading…'
+    : vehicleRequests.isError
+      ? 'Unavailable'
+      : vehicleRequests.data?.length
+        ? `${totalVehicleDistanceKm.toLocaleString('en-US')} km one way × 2 × $${VEHICLE_RATE_PER_KM.toFixed(2)}/km = ${USD_FORMATTER.format(vehicleReimbursement)}`
+        : 'No vehicle request';
+  const totalMissionCostValue = missionInfo.totalExpense == null
+    ? 'Not calculated'
+    : vehicleRequests.isLoading
+      ? 'Loading…'
+      : vehicleRequests.isError
+        ? 'Unavailable'
+        : USD_FORMATTER.format(missionInfo.totalExpense + vehicleReimbursement);
 
   const target: DecisionTarget = {
     missionId: mission.id,
@@ -94,18 +124,23 @@ export function MissionDetail() {
 
   const details: Array<{ icon: typeof UserIcon; label: string; value: string }> = [
     { icon: UserIcon, label: 'Requester', value: mission.requesterName },
+    { icon: UsersIcon, label: 'Mission type', value: titleCase(missionType) },
+    { icon: BriefcaseIcon, label: 'Job level', value: titleCase(mission.jobLevel) },
     { icon: BuildingIcon, label: 'Business', value: mission.business },
+    { icon: MapPinIcon, label: 'Based location', value: mission.basedLocation },
     { icon: MapPinIcon, label: 'Destination', value: mission.destinationLocation },
+    { icon: LayersIcon, label: 'Location tier', value: titleCase(mission.locationTier) },
     {
       icon: CalendarIcon,
       label: 'Travel window',
       value: `${formatDate(mission.departureDate, 'MMM d')} – ${formatDate(mission.arrivalDate, 'MMM d, yyyy')} · ${mission.numberOfTravelDays} days`
     },
     { icon: CarFrontIcon, label: 'Transport', value: transportValue },
+    { icon: CarFrontIcon, label: 'Personal car reimbursement', value: vehicleCostValue },
     {
       icon: CalculatorIcon,
-      label: 'Estimated cost',
-      value: mission.totalExpense == null ? 'Not calculated' : formatCurrency(mission.totalExpense),
+      label: 'Total mission cost',
+      value: totalMissionCostValue,
     },
   ];
 
@@ -149,14 +184,6 @@ export function MissionDetail() {
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button
-            variant="secondary"
-            icon={CalculatorIcon}
-            loading={allowance.isFetching}
-            onClick={() => allowance.refetch()}
-          >
-            Calculate allowance
-          </Button>
           {canManage && (
             <>
               <Button variant="secondary" icon={PencilIcon} onClick={() => setEditOpen(true)}>
@@ -209,21 +236,21 @@ export function MissionDetail() {
             </dl>
           </Card>
 
-          {mission.missionType === 'GROUP' && (
+          {missionType === 'GROUP' && (
             <Card>
               <CardHeader
-                title="Travelers"
-                description="Each traveler's allowance is calculated from their own job level."
+                title="Group members"
+                description={`${groupParticipants.length} member${groupParticipants.length === 1 ? '' : 's'} · allowance calculated by each traveler's job level`}
               />
               <div className="mt-4">
-                <ParticipantsPanel participants={(allowance.data ?? mission).participants ?? []} />
+                <ParticipantsPanel participants={groupParticipants} />
               </div>
             </Card>
           )}
           {!!vehicleRequests.data?.length && (
             <Card>
               <CardHeader
-                title="Vehicle requests"
+                title="Personal car requests"
                 description={`${vehicleRequests.data.length} request${vehicleRequests.data.length === 1 ? '' : 's'} for this mission`}
               />
               <div className="mt-4 divide-y divide-line">
@@ -272,7 +299,7 @@ export function MissionDetail() {
                                         {trip.origin} <span className="px-1 text-fg-subtle">→</span> {trip.destination}
                                       </p>
                                       <span className="text-xs tabular-nums text-fg-muted">
-                                        {formatDate(trip.date)} · {trip.distanceKm} km
+                                        {formatDate(trip.date)} · {trip.distanceKm} km one way
                                       </span>
                                     </div>
                                     {trip.purposeOfTravel && (
@@ -283,6 +310,22 @@ export function MissionDetail() {
                                     )}
                                   </div>
                                 ))}
+                              </div>
+                              <div className="mt-4 flex flex-col gap-3 rounded-xl bg-brand-soft px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-[13px] font-medium text-brand-text">
+                                    Mission total · all personal car requests
+                                  </p>
+                                  <p className="mt-0.5 text-xs text-brand-text/80">
+                                    {totalVehicleDistanceKm.toLocaleString('en-US')} km one way · {roundTripDistanceKm.toLocaleString('en-US')} km round trip · $0.20/km
+                                  </p>
+                                </div>
+                                <div className="sm:text-right">
+                                  <p className="text-xs text-brand-text/80">Total reimbursement</p>
+                                  <p className="text-lg font-semibold tabular-nums text-brand-text">
+                                    {USD_FORMATTER.format(vehicleReimbursement)}
+                                  </p>
+                                </div>
                               </div>
                             </>
                           ) : null}
@@ -304,7 +347,7 @@ export function MissionDetail() {
               <AllowancePanel
                 data={allowance.data ?? (mission.totalExpense != null ? mission : undefined)}
                 loading={allowance.isFetching}
-                onCalculate={() => allowance.refetch()}
+                vehicleReimbursement={vehicleReimbursement}
               />
             </div>
           </Card>

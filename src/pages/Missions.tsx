@@ -54,7 +54,12 @@ export function Missions() {
   const [createOpen, setCreateOpen] = useState(Boolean(screenInit.createOpen));
 
   const query = (localSearch || globalSearch).trim().toLowerCase();
-  const missions = data ?? [];
+  const missions = useMemo(
+    () => [...(data ?? [])].sort(
+      (first, second) => second.createdAt.localeCompare(first.createdAt) || second.id - first.id
+    ),
+    [data]
+  );
 
   const filtered = useMemo(() => {
     return missions.filter((mission) => {
