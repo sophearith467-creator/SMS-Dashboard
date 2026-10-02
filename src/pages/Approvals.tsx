@@ -4,13 +4,15 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
   InboxIcon,
-  MapPinIcon
+  MapPinIcon,
+  SearchIcon
 } from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
+import { Input } from '../components/ui/Input';
 import { SkeletonText } from '../components/ui/Skeleton';
 import { usePendingApprovals } from '../hooks/useApprovals';
 import { useMissions } from '../hooks/useMissions';
@@ -38,6 +40,7 @@ export function Approvals() {
   const { data, isLoading } = usePendingApprovals();
   const { data: missions } = useMissions();
   const [stageFilter, setStageFilter] = useState<StageFilter>('ALL');
+  const [search, setSearch] = useState('');
 
   const queue = data ?? [];
   const recentlyApproved = useMemo(
@@ -76,22 +79,19 @@ export function Approvals() {
   }, [queue]);
 
   const filtered = useMemo(() => {
-    if (stageFilter === 'ALL') return queue;
-    return queue.filter(
-      (item) => (item.currentApprovalStep ?? 'UNASSIGNED') === stageFilter
-    );
-  }, [queue, stageFilter]);
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, PendingApprovalItem[]>();
-    for (const item of filtered) {
-      const key = item.currentApprovalStep ?? 'UNASSIGNED';
-      const list = map.get(key) ?? [];
-      list.push(item);
-      map.set(key, list);
-    }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [filtered]);
+    const normalizedSearch = search.trim().toLowerCase();
+    return queue.filter((item) => {
+      const matchesStage = stageFilter === 'ALL' || (item.currentApprovalStep ?? 'UNASSIGNED') === stageFilter;
+      const matchesSearch = !normalizedSearch || [
+        item.missionCode ?? '',
+        item.requesterName,
+        item.destinationLocation,
+        item.departureDate,
+        item.arrivalDate,
+      ].join(' ').toLowerCase().includes(normalizedSearch);
+      return matchesStage && matchesSearch;
+    });
+  }, [queue, stageFilter, search]);
 
   return (
     <PageTransition>
@@ -106,21 +106,34 @@ export function Approvals() {
       />
 
       {!isLoading && queue.length > 0 && (
-        <div className="mb-5 overflow-x-auto pb-1">
-          <FilterTabs
-            ariaLabel="Filter by approval stage"
-            layoutId="approvals-stage-filter"
-            value={stageFilter}
-            onChange={setStageFilter}
-            options={[
-              { value: 'ALL', label: 'All stages', count: queue.length },
-              ...stages.map(([key, count]) => ({
-                value: key,
-                label: stageLabel(key),
-                count
-              }))
-            ]}
-          />
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="overflow-x-auto pb-1">
+            <FilterTabs
+              ariaLabel="Filter by approval stage"
+              layoutId="approvals-stage-filter"
+              value={stageFilter}
+              onChange={setStageFilter}
+              options={[
+                { value: 'ALL', label: 'All stages', count: queue.length },
+                ...stages.map(([key, count]) => ({
+                  value: key,
+                  label: stageLabel(key),
+                  count
+                }))
+              ]}
+            />
+          </div>
+          <div className="w-full sm:w-72">
+            <Input
+              type="search"
+              icon={SearchIcon}
+              aria-label="Search approvals"
+              placeholder="Search code, requester or destination"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-9"
+            />
+          </div>
         </div>
       )}
 
@@ -147,22 +160,8 @@ export function Approvals() {
           />
         </div>
       ) : (
-        <div className="space-y-6">
-          {grouped.map(([stage, items]) => (
-            <section key={stage} className="space-y-3">
-              <div className="flex items-center justify-between gap-3 px-0.5">
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-fg">
-                    {stageLabel(stage)}
-                  </h2>
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-muted px-1.5 text-[11px] font-semibold tabular-nums text-fg-muted">
-                    {items.length}
-                  </span>
-                </div>
-              </div>
-
-              <ul className="space-y-2.5">
-                {items.map((item) => (
+        <ul className="space-y-2.5">
+                {filtered.map((item) => (
                   <li
                     key={item.missionId}
                     className={cn(
@@ -239,10 +238,7 @@ export function Approvals() {
                     </div>
                   </li>
                 ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        </ul>
       )}
 
       {!isLoading && recentlyApproved.length > 0 && (

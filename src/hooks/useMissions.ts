@@ -51,7 +51,7 @@ export function useMissionAllowance(id: number | undefined) {
       queryClient.setQueryData(queryKeys.missions.detail(String(id)), mission);
       return mission;
     },
-    enabled: false,
+    enabled: id !== undefined,
   });
 }
 

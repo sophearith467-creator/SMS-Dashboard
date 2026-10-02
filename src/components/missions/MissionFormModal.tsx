@@ -328,10 +328,10 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
     <Modal
       open={open}
       onClose={handleClose}
-      title={formStep === 'vehicle' ? 'Request vehicle' : isEditMode ? 'Edit mission request' : 'New mission request'}
+      title={formStep === 'vehicle' ? 'Personal car request' : isEditMode ? 'Edit mission request' : 'New mission request'}
       description={
         formStep === 'vehicle'
-          ? 'Add the route details for each vehicle trip.'
+          ? 'Add your personal car trip details. Reimbursement is calculated at $0.20 per kilometer.'
           : isEditMode
             ? 'Update the details below. Changes are saved to this draft mission.'
             : 'Submitted requests enter the five-stage approval chain, starting with the function manager.'
@@ -556,14 +556,14 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
         />
         </section>
         <div className="flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-fg">Vehicle request</p>
+          <p className="text-sm font-medium text-fg">Personal car</p>
           <button
             type="button"
             onClick={handleRequestVehicle}
             className="inline-flex h-10 items-center justify-center gap-2 self-start rounded-lg bg-brand-soft px-4 text-sm font-semibold text-brand-text transition-colors hover:bg-brand-soft/80 sm:self-auto"
           >
             <CarFrontIcon size={16} aria-hidden />
-            Request vehicle
+            Request personal car
           </button>
         </div>
           </>
@@ -597,7 +597,8 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
                   <div className="space-y-1 self-end">
                     <div className="flex items-end gap-2">
                       <Input
-                        label="Distance (km)"
+                        label="One-way distance (km)"
+                        hint="Round-trip reimbursement is calculated automatically."
                         type="number"
                         min={0}
                         value={detail.distanceKm}
