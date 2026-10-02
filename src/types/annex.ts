@@ -46,6 +46,30 @@ export interface VehicleTravelDetail {
   remarks: string | null;
 }
 
+export interface VehicleTravelDetailInput {
+  date: string;
+  origin: string;
+  destination: string;
+  purposeOfTravel: string;
+  distanceKm: number;
+  remarks: string;
+}
+
+export interface CreateVehicleRequestInput {
+  requesterName: string;
+  requesterId?: string;
+  position?: string;
+  function?: string;
+  business?: string;
+  jobLevel?: string;
+  basedLocation?: string;
+  destinationLocation?: string;
+  travelStartDate: string;
+  travelEndDate: string;
+  travelObjectives: string;
+  travelDetails: VehicleTravelDetailInput[];
+}
+
 export interface VehicleRequest {
   id: number;
   missionId: number;
