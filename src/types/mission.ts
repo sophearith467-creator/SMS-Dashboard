@@ -1,3 +1,5 @@
+import type { VehicleTravelDetail, VehicleTravelDetailInput } from './annex';
+
 export type JobLevel =
   | 'EXECUTIVE'
   | 'FUNCTION_MANAGER'
@@ -35,6 +37,8 @@ export interface Mission {
   arrivalDate: string;
   arrivalTime: string | null;
   numberOfTravelDays: number;
+
+  vehicleRequest?: { travelDetails: VehicleTravelDetail[] } | null;
 
   breakfastAmount: number | null;
   breakfastQuantity: number | null;
@@ -74,6 +78,7 @@ export interface MissionInput {
   arrivalDate: string;
   arrivalTime?: string;
   numberOfTravelDays: number;
+  vehicleRequest?: { travelDetails: VehicleTravelDetailInput[] };
   description?: string;
   onBehalfOfUserId?: number;
 }

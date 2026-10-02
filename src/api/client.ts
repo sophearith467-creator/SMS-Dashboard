@@ -1,7 +1,9 @@
 import axios, { type AxiosError, type AxiosRequestConfig } from 'axios';
 import { sleep } from '../lib/utils';
 
-export const API_BASE_URL = 'http://localhost:8080';
+export const API_BASE_URL =
+  (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ??
+  'http://localhost:8080';
 export const TOKEN_KEY = 'mms.token';
 export const USER_KEY = 'mms.user';
 

@@ -1,11 +1,12 @@
 import type {
   ActivityReport,
+  CreateVehicleRequestInput,
   MileageClaim,
   RecordStatus,
   SettlementRecord,
   VehicleRequest } from
 '../types/annex';
-import { request } from './client';
+import { http, request } from './client';
 import { demoState } from './demoStore';
 
 interface ApiEnvelope<T> {
@@ -32,9 +33,28 @@ export async function fetchActivityReports(): Promise<ActivityReport[]> {
 export async function fetchVehicleRequests(): Promise<VehicleRequest[]> {
   const res = await request<ApiEnvelope<VehicleRequest[]> | VehicleRequest[]>(
     { url: '/api/annexes/vehicle-requests' },
-    () => [...demoState.vehicleRequests]
+    () => []
   );
   return unwrap(res) ?? [];
+}
+
+export async function fetchMissionVehicleRequests(missionId: number): Promise<VehicleRequest[]> {
+  const res = await request<ApiEnvelope<VehicleRequest[]> | VehicleRequest[]>(
+    { url: `/api/missions/${missionId}/vehicle-requests` },
+    () => []
+  );
+  return unwrap(res) ?? [];
+}
+
+export async function createVehicleRequest(
+  missionId: number,
+  input: CreateVehicleRequestInput
+): Promise<VehicleRequest> {
+  const res = await http.post<ApiEnvelope<VehicleRequest> | VehicleRequest>(
+    `/api/missions/${missionId}/vehicle-requests`,
+    input
+  );
+  return unwrap(res.data);
 }
 
 export async function fetchMileageClaims(): Promise<MileageClaim[]> {

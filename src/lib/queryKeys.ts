@@ -8,7 +8,8 @@ export const queryKeys = {
   missions: {
     all: ['missions'] as const,
     detail: (id: string) => ['missions', id] as const,
-    allowance: (id: string) => ['missions', id, 'allowances'] as const
+    allowance: (id: string) => ['missions', id, 'allowances'] as const,
+    vehicleRequests: (missionId: number) => ['missions', missionId, 'vehicle-requests'] as const
   },
   approvals: {
     pending: ['approvals', 'pending'] as const,
