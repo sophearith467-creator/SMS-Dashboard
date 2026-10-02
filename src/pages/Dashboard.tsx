@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
@@ -19,6 +19,7 @@ import { SpendBreakdown } from '../components/dashboard/SpendBreakdown';
 import { TurnaroundPanel } from '../components/dashboard/TurnaroundPanel';
 import { ExceptionsList } from '../components/dashboard/ExceptionsList';
 import { DashboardHero } from '../components/dashboard/DashboardHero';
+import { MyReportsCard } from '../components/dashboard/MyReportsCard';
 import { MissionFormModal } from '../components/missions/MissionFormModal';
 import {
   useAllowanceSpend,
@@ -175,10 +176,11 @@ export function Dashboard() {
           </div>
 
           {summary.data && (
-            <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
+            <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-5">
               {[
                 { label: 'Pending', value: summary.data.pending },
                 { label: 'Approved', value: summary.data.approved },
+                { label: 'Report submitted', value: summary.data.reportSubmitted ?? 0 },
                 { label: 'Completed', value: summary.data.completed },
                 { label: 'Rejected', value: summary.data.rejected }
               ].map((stat) => (
@@ -248,7 +250,13 @@ export function Dashboard() {
         </Card>
       </div>
 
+      <div className="mt-4">
+        <MyReportsCard />
+      </div>
+
       <MissionFormModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </PageTransition>
   );
 }
+
+

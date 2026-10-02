@@ -9,6 +9,24 @@ export type JobLevel =
 
 export type LocationTier = 'TIER_1' | 'TIER_2' | 'TIER_3';
 
+export type MissionType = 'INDIVIDUAL' | 'GROUP';
+
+export interface MissionParticipant {
+  id: number;
+  employeeId: number;
+  employeeCode: string | null;
+  fullName: string;
+  jobLevel: JobLevel;
+  functionName: string | null;
+  business: string | null;
+  requester: boolean;
+  breakfastTotal: number;
+  lunchTotal: number;
+  dinnerTotal: number;
+  accommodationTotal: number;
+  totalExpense: number;
+}
+
 export type MissionStatus =
   | 'DRAFT' | 'SUBMITTED'
   | 'FM_REVIEW' | 'HRBP_REVIEW' | 'FINANCE_REVIEW' | 'BIZOPS_REVIEW' | 'EXECUTIVE_REVIEW'
@@ -60,6 +78,9 @@ export interface Mission {
   status: MissionStatus;
   currentApprovalStep: ApprovalStage | null;
 
+  missionType?: MissionType;
+  participants?: MissionParticipant[];
+
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +102,8 @@ export interface MissionInput {
   vehicleRequest?: { travelDetails: VehicleTravelDetailInput[] };
   description?: string;
   onBehalfOfUserId?: number;
+  missionType?: MissionType;
+  participantIds?: number[];
 }
 
 export interface AllowanceLine {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import {
   CheckIcon,
   ClipboardListIcon,
@@ -15,6 +15,13 @@ import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
 import { Input } from '../components/ui/Input';
+import { Button } from '../components/ui/Button';
+import { PlusIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../context/AuthContext';
+import { ReportFormModal } from '../components/missions/ReportFormModal';
+import { ReportReviewDialog, nextReviewStep } from '../components/missions/ReportReviewDialog';
+import { fetchMissionsLite } from '../api/reportsAdmin';
 import { useActivityReports, useAnnexStatusUpdate } from '../hooks/useAnnexes';
 import { formatDateRange, titleCase } from '../lib/utils';
 import type { ActivityReport, ActivityReportStatus } from '../types/annex';
@@ -28,6 +35,16 @@ export function ActivityReports() {
   const updateStatus = useAnnexStatusUpdate('activity-reports');
   const [filter, setFilter] = useState<Filter>('ALL');
   const [search, setSearch] = useState('');
+  const { can } = useAuth();
+  const [reviewing, setReviewing] = useState<ActivityReport | null>(null);
+  const canReview = (r: ActivityReport) => {
+    const step = nextReviewStep(r);
+    if (!step) return false;
+    return can(['ROLE_ADMIN']) || can([step === 'FM' ? 'ROLE_FUNCTION_MANAGER' : 'ROLE_BIZOPS']);
+  };
+  const isAdmin = can(['ROLE_ADMIN']);
+  const [writeOpen, setWriteOpen] = useState(false);
+  const missionsQuery = useQuery({ queryKey: ['missions-lite'], queryFn: fetchMissionsLite, enabled: isAdmin });
 
   const reports = data ?? [];
   const rows = useMemo(
@@ -133,6 +150,7 @@ export function ActivityReports() {
         <DropdownMenu
           width="w-48"
           items={[
+            ...(canReview(report) ? [{ label: 'Review & comment', icon: EyeIcon, onSelect: () => setReviewing(report) }] : []),
             {
               label: 'Mark under review',
               icon: EyeIcon,
@@ -173,6 +191,14 @@ export function ActivityReports() {
         title="Activity Reports"
         description="Annex B narrative reports submitted at the close of each mission."
       />
+
+      {isAdmin && (
+        <div className="mb-3 flex justify-end">
+          <Button icon={PlusIcon} onClick={() => setWriteOpen(true)}>Write report</Button>
+        </div>
+      )}
+      <ReportReviewDialog report={reviewing} onClose={() => setReviewing(null)} />
+      <ReportFormModal open={writeOpen} onClose={() => setWriteOpen(false)} missions={missionsQuery.data ?? []} />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="overflow-x-auto pb-1">
@@ -221,3 +247,5 @@ export function ActivityReports() {
     </PageTransition>
   );
 }
+
+

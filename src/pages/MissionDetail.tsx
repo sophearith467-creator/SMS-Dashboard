@@ -13,6 +13,7 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton, SkeletonText } from '../components/ui/Skeleton';
 import { AllowancePanel } from '../components/missions/AllowancePanel';
+import { ParticipantsPanel } from '../components/missions/ParticipantsPanel';
 import { ApprovalChainPanel } from '../components/missions/ApprovalChainPanel';
 import { DecisionDialog, type DecisionTarget } from '../components/missions/DecisionDialog';
 import { MissionFormModal } from '../components/missions/MissionFormModal';
@@ -192,6 +193,17 @@ export function MissionDetail() {
             </dl>
           </Card>
 
+          {mission.missionType === 'GROUP' && (
+            <Card>
+              <CardHeader
+                title="Travelers"
+                description="Each traveler's allowance is calculated from their own job level."
+              />
+              <div className="mt-4">
+                <ParticipantsPanel participants={(allowance.data ?? mission).participants ?? []} />
+              </div>
+            </Card>
+          )}
           <Card>
             <CardHeader
               title="Allowance breakdown"

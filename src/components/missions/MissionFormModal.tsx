@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { CarFrontIcon, MapPinIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -13,35 +13,40 @@ import type { CreateVehicleRequestInput, VehicleTravelDetailInput } from '../../
 import type { Mission, MissionInput } from '../../types/mission';
 import { useCreateVehicleRequest } from '../../hooks/useAnnexes';
 
-const JOB_LEVELS: Array<{ value: MissionInput['jobLevel']; label: string }> = [
-  { value: 'EXECUTIVE', label: 'Executive' },
-  { value: 'FUNCTION_MANAGER', label: 'Function Manager' },
-  { value: 'SUB_FUNCTION_MANAGER', label: 'Sub Function Manager' },
-  { value: 'STAFF', label: 'Staff' },
-  { value: 'DRIVER', label: 'Driver' },
+const JOB_LEVELS: Array<{ value: MissionInput["jobLevel"]; label: string }> = [
+  { value: "EXECUTIVE", label: "Executive" },
+  { value: "FUNCTION_MANAGER", label: "Function Manager" },
+  { value: "SUB_FUNCTION_MANAGER", label: "Sub Function Manager" },
+  { value: "STAFF", label: "Staff" },
+  { value: "DRIVER", label: "Driver" },
 ];
 
-const LOCATION_TIERS: Array<{ value: MissionInput['locationTier']; label: string }> = [
-  { value: 'TIER_1', label: 'Tier 1' },
-  { value: 'TIER_2', label: 'Tier 2' },
-  { value: 'TIER_3', label: 'Tier 3' },
+const LOCATION_TIERS: Array<{
+  value: MissionInput["locationTier"];
+  label: string;
+}> = [
+  { value: "TIER_1", label: "Tier 1" },
+  { value: "TIER_2", label: "Tier 2" },
+  { value: "TIER_3", label: "Tier 3" },
 ];
 
 const EMPTY: MissionInput = {
-  position: '',
-  functionName: '',
-  business: '',
-  jobLevel: 'STAFF',
-  basedLocation: '',
-  destinationLocation: '',
-  locationTier: 'TIER_1',
-  travelObjectives: '',
-  departureDate: '',
-  departureTime: '',
-  arrivalDate: '',
-  arrivalTime: '',
+  position: "",
+  functionName: "",
+  business: "",
+  jobLevel: "STAFF",
+  basedLocation: "",
+  destinationLocation: "",
+  locationTier: "TIER_1",
+  travelObjectives: "",
+  departureDate: "",
+  departureTime: "",
+  arrivalDate: "",
+  arrivalTime: "",
   numberOfTravelDays: 1,
-  description: '',
+  missionType: "INDIVIDUAL",
+  participantIds: [],
+  description: "",
 };
 
 type Errors = Record<string, string | undefined>;
@@ -76,11 +81,11 @@ function missionToFormValues(mission: Mission): MissionInput {
     locationTier: mission.locationTier,
     travelObjectives: mission.travelObjectives,
     departureDate: mission.departureDate,
-    departureTime: mission.departureTime ?? '',
+    departureTime: mission.departureTime ?? "",
     arrivalDate: mission.arrivalDate,
-    arrivalTime: mission.arrivalTime ?? '',
+    arrivalTime: mission.arrivalTime ?? "",
     numberOfTravelDays: mission.numberOfTravelDays,
-    description: mission.description ?? '',
+    description: mission.description ?? "",
   };
 }
 
@@ -111,7 +116,8 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
   const createVehicleRequest = useCreateVehicleRequest();
   const { can } = useAuth();
   const canPickStaff = !isEditMode && can(APPROVER_ROLES);
-  const staffList = useStaffList(canPickStaff && open);
+  const isGroup = !isEditMode && form.missionType === "GROUP";
+  const staffList = useStaffList((canPickStaff || isGroup) && open);
   const isPending = createMission.isPending || updateMission.isPending || createVehicleRequest.isPending;
 
   // Re-sync the form whenever a different mission is opened for editing, or the modal re-opens fresh.
@@ -127,28 +133,56 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
     }
   }, [open, editMission]);
 
-  function update<K extends keyof MissionInput>(key: K, value: MissionInput[K]) {
+  function update<K extends keyof MissionInput>(
+    key: K,
+    value: MissionInput[K],
+  ) {
     setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: undefined }));
   }
 
+  function toggleParticipant(id: number) {
+    setForm((current) => {
+      const ids = current.participantIds ?? [];
+      return {
+        ...current,
+        participantIds: ids.includes(id)
+          ? ids.filter((x) => x !== id)
+          : [...ids, id],
+      };
+    });
+    setErrors((current) => ({ ...current, participantIds: undefined }));
+  }
+
   function validateMission(): boolean {
     const next: Errors = {};
-    if (!form.position.trim()) next.position = 'Position is required.';
-    if (!form.functionName.trim()) next.functionName = 'Function is required.';
-    if (!form.business.trim()) next.business = 'Business is required.';
-    if (!form.basedLocation.trim()) next.basedLocation = 'Based location is required.';
-    if (!form.destinationLocation.trim()) next.destinationLocation = 'Destination is required.';
+    if (!form.position.trim()) next.position = "Position is required.";
+    if (!form.functionName.trim()) next.functionName = "Function is required.";
+    if (!form.business.trim()) next.business = "Business is required.";
+    if (!form.basedLocation.trim())
+      next.basedLocation = "Based location is required.";
+    if (!form.destinationLocation.trim())
+      next.destinationLocation = "Destination is required.";
     if (form.travelObjectives.trim().length < 20) {
-      next.travelObjectives = 'Describe the travel objectives in at least 20 characters.';
+      next.travelObjectives =
+        "Describe the travel objectives in at least 20 characters.";
     }
-    if (!form.departureDate) next.departureDate = 'Select a departure date.';
-    if (!form.arrivalDate) next.arrivalDate = 'Select an arrival date.';
-    if (form.departureDate && form.arrivalDate && form.arrivalDate < form.departureDate) {
-      next.arrivalDate = 'The arrival date must fall on or after the departure date.';
+    if (!form.departureDate) next.departureDate = "Select a departure date.";
+    if (!form.arrivalDate) next.arrivalDate = "Select an arrival date.";
+    if (
+      form.departureDate &&
+      form.arrivalDate &&
+      form.arrivalDate < form.departureDate
+    ) {
+      next.arrivalDate =
+        "The arrival date must fall on or after the departure date.";
     }
     if (!form.numberOfTravelDays || form.numberOfTravelDays < 1) {
-      next.numberOfTravelDays = 'Enter at least 1 travel day.';
+      next.numberOfTravelDays = "Enter at least 1 travel day.";
+    }
+    if (isGroup && !(form.participantIds && form.participantIds.length > 0)) {
+      next.participantIds =
+        "Select at least one other traveler for a group mission.";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -244,6 +278,8 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
       arrivalTime: form.arrivalTime || undefined,
       description: form.description || undefined,
       onBehalfOfUserId: staffId ? Number(staffId) : undefined,
+      missionType: isEditMode ? undefined : form.missionType,
+      participantIds: isGroup ? form.participantIds : undefined,
     };
 
     try {
@@ -303,7 +339,11 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
       size="lg"
       footer={
         <>
-          <Button variant="secondary" onClick={handleClose} disabled={isPending}>
+          <Button
+            variant="secondary"
+            onClick={handleClose}
+            disabled={isPending}
+          >
             Cancel
           </Button>
           {formStep === 'vehicle' && (
@@ -312,9 +352,7 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
             </Button>
           )}
           <Button type="submit" form="mission-form" loading={isPending}>
-            {formStep === 'vehicle'
-              ? isEditMode ? 'Save changes' : 'Submit for approval'
-              : isEditMode ? 'Save changes' : 'Submit for approval'}
+            {isEditMode ? "Save changes" : "Submit for approval"}
           </Button>
         </>
       }
@@ -324,13 +362,74 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
           <>
         <section className="space-y-4">
           <h3 className="text-sm font-semibold text-fg">Requester</h3>
+
+        {!isEditMode && (
+          <Select
+            label="Mission type"
+            value={form.missionType ?? "INDIVIDUAL"}
+            onChange={(event) => {
+              update(
+                "missionType",
+                event.target.value as NonNullable<MissionInput["missionType"]>,
+              );
+              if (event.target.value === "INDIVIDUAL")
+                update("participantIds", []);
+            }}
+            options={[
+              { value: "INDIVIDUAL", label: "Individual" },
+              { value: "GROUP", label: "Group (several travelers)" },
+            ]}
+          />
+        )}
+
+        {isGroup && (
+          <div>
+            <p className="mb-2 text-sm font-medium">Other travelers</p>
+            <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-300/60 p-2">
+              {staffList.isLoading && (
+                <p className="p-2 text-sm opacity-70">Loading staff...</p>
+              )}
+              {staffList.isError && (
+                <p className="p-2 text-sm text-red-600">
+                  Could not load the staff list.
+                </p>
+              )}
+              {(staffList.data ?? [])
+                .filter((u) => String(u.id) !== staffId)
+                .map((u) => (
+                  <label
+                    key={u.id}
+                    className="flex cursor-pointer items-center gap-2 rounded-md p-2 text-sm hover:bg-black/5"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={(form.participantIds ?? []).includes(u.id)}
+                      onChange={() => toggleParticipant(u.id)}
+                    />
+                    <span>
+                      {u.fullName} - {u.jobLevel}
+                    </span>
+                  </label>
+                ))}
+            </div>
+            {errors.participantIds && (
+              <p className="mt-1 text-xs text-red-600">
+                {errors.participantIds}
+              </p>
+            )}
+            <p className="mt-1 text-xs opacity-70">
+              You are added automatically. Allowances are calculated per person.
+            </p>
+          </div>
+        )}
+
         {canPickStaff && (
           <Select
             label="Create on behalf of (optional)"
             value={staffId}
             onChange={(event) => setStaffId(event.target.value)}
             options={[
-              { value: '', label: 'Myself' },
+              { value: "", label: "Myself" },
               ...(staffList.data ?? []).map((u) => ({
                 value: String(u.id),
                 label: `${u.fullName} · ${u.jobLevel}`,
@@ -345,26 +444,28 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
             placeholder="Field Operations Officer"
             value={form.position}
             error={errors.position}
-            onChange={(event) => update('position', event.target.value)}
+            onChange={(event) => update("position", event.target.value)}
           />
           <Input
             label="Function"
             placeholder="Field Operations"
             value={form.functionName}
             error={errors.functionName}
-            onChange={(event) => update('functionName', event.target.value)}
+            onChange={(event) => update("functionName", event.target.value)}
           />
           <Input
             label="Business"
             placeholder="OneMore Group"
             value={form.business}
             error={errors.business}
-            onChange={(event) => update('business', event.target.value)}
+            onChange={(event) => update("business", event.target.value)}
           />
           <Select
             label="Job level"
             value={form.jobLevel}
-            onChange={(event) => update('jobLevel', event.target.value as MissionInput['jobLevel'])}
+            onChange={(event) =>
+              update("jobLevel", event.target.value as MissionInput["jobLevel"])
+            }
             options={JOB_LEVELS}
           />
         </div>
@@ -377,7 +478,7 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
           placeholder="What needs to happen on the ground, and what will the mission deliver?"
           value={form.travelObjectives}
           error={errors.travelObjectives}
-          onChange={(event) => update('travelObjectives', event.target.value)}
+          onChange={(event) => update("travelObjectives", event.target.value)}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -386,54 +487,63 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
             placeholder="Phnom Penh"
             value={form.basedLocation}
             error={errors.basedLocation}
-            onChange={(event) => update('basedLocation', event.target.value)}
+            onChange={(event) => update("basedLocation", event.target.value)}
           />
           <Input
             label="Destination location"
             placeholder="Siem Reap"
             value={form.destinationLocation}
             error={errors.destinationLocation}
-            onChange={(event) => update('destinationLocation', event.target.value)}
+            onChange={(event) =>
+              update("destinationLocation", event.target.value)
+            }
           />
           <Select
             label="Location tier"
             value={form.locationTier}
-            onChange={(event) => update('locationTier', event.target.value as MissionInput['locationTier'])}
+            onChange={(event) =>
+              update(
+                "locationTier",
+                event.target.value as MissionInput["locationTier"],
+              )
+            }
             options={LOCATION_TIERS}
           />
           <Input
             label="Number of travel days"
             type="number"
             min={1}
-            value={form.numberOfTravelDays || ''}
+            value={form.numberOfTravelDays || ""}
             error={errors.numberOfTravelDays}
-            onChange={(event) => update('numberOfTravelDays', Number(event.target.value))}
+            onChange={(event) =>
+              update("numberOfTravelDays", Number(event.target.value))
+            }
           />
           <Input
             label="Departure date"
             type="date"
             value={form.departureDate}
             error={errors.departureDate}
-            onChange={(event) => update('departureDate', event.target.value)}
+            onChange={(event) => update("departureDate", event.target.value)}
           />
           <Input
             label="Departure time (optional)"
             type="time"
             value={form.departureTime}
-            onChange={(event) => update('departureTime', event.target.value)}
+            onChange={(event) => update("departureTime", event.target.value)}
           />
           <Input
             label="Arrival date"
             type="date"
             value={form.arrivalDate}
             error={errors.arrivalDate}
-            onChange={(event) => update('arrivalDate', event.target.value)}
+            onChange={(event) => update("arrivalDate", event.target.value)}
           />
           <Input
             label="Arrival time (optional)"
             type="time"
             value={form.arrivalTime}
-            onChange={(event) => update('arrivalTime', event.target.value)}
+            onChange={(event) => update("arrivalTime", event.target.value)}
           />
         </div>
 
@@ -441,7 +551,7 @@ export function MissionFormModal({ open, onClose, editMission }: MissionFormModa
           label="Description (optional)"
           placeholder="Any additional notes for approvers…"
           value={form.description}
-          onChange={(event) => update('description', event.target.value)}
+          onChange={(event) => update("description", event.target.value)}
           rows={3}
         />
         </section>
