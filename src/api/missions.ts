@@ -3,7 +3,8 @@ import { http, request } from './client';
 import { demoState } from './demoStore';
 
 export async function fetchMissions(): Promise<Mission[]> {
-  return request<Mission[]>({ url: '/api/missions' }, () => demoState.missions);
+  const res = await http.get<Mission[]>('/api/missions');
+  return res.data;
 }
 
 export async function fetchMission(id: number): Promise<Mission> {
