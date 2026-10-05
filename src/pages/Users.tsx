@@ -149,6 +149,7 @@ export function Users() {
       align: 'right',
       render: (user) => (
         <DropdownMenu
+          placement="top" // open upward instead of from the bottom
           items={[
             {
               label: 'View details',

@@ -1,99 +1,124 @@
-import React, { useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { CheckIcon, type BoxIcon } from 'lucide-react';
-import { useClickOutside } from '../../hooks/useClickOutside';
-import { cn } from '../../lib/utils';
+
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface DropdownItem {
   label: string;
-  icon?: BoxIcon;
   onSelect: () => void;
   tone?: 'default' | 'danger';
   disabled?: boolean;
-  selected?: boolean;
-  count?: number;
 }
 
-export interface DropdownMenuProps {
-  trigger: (props: { open: boolean; toggle: () => void }) => React.ReactNode;
+interface DropdownMenuProps {
   items: DropdownItem[];
-  header?: React.ReactNode;
-  align?: 'left' | 'right';
-  width?: string;
-  maxHeight?: string;
-  closeOnSelect?: boolean;
+  trigger: (args: { toggle: () => void; open: boolean }) => ReactNode;
+  placement?: 'top' | 'bottom' | 'auto';
 }
 
-export function DropdownMenu({
-  trigger,
-  items,
-  header,
-  align = 'right',
-  width = 'w-52',
-  maxHeight,
-  closeOnSelect = true
-}: DropdownMenuProps) {
+const GAP = 6;
+const EDGE = 8;
+
+export function DropdownMenu({ items, trigger, placement = 'auto' }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  useClickOutside(containerRef, () => setOpen(false), open);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current || !menuRef.current) return;
+    const a = anchorRef.current.getBoundingClientRect();
+    const m = menuRef.current.getBoundingClientRect();
+
+    const fitsBelow = a.bottom + GAP + m.height <= window.innerHeight - EDGE;
+    const fitsAbove = a.top - GAP - m.height >= EDGE;
+
+    let openUp: boolean;
+    if (placement === 'top') openUp = fitsAbove || !fitsBelow;
+    else openUp = !fitsBelow && fitsAbove;
+
+    const top = openUp ? a.top - GAP - m.height : a.bottom + GAP;
+    const left = Math.max(
+      EDGE,
+      Math.min(a.right - m.width, window.innerWidth - m.width - EDGE)
+    );
+
+    setPos({ top, left });
+  }, [open, placement]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (menuRef.current?.contains(target) || anchorRef.current?.contains(target)) return;
+      close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+
+    document.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    setPos(null);
+    setOpen((v) => !v);
+  };
 
   return (
-    <div ref={containerRef} className="relative">
-      {trigger({ open, toggle: () => setOpen((v) => !v) })}
-      <AnimatePresence>
-        {open && (
-          <motion.div
+    <>
+      <span ref={anchorRef} className="inline-flex">
+        {trigger({ toggle, open })}
+      </span>
+
+      {open &&
+        createPortal(
+          <div
+            ref={menuRef}
             role="menu"
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
-            className={cn(
-              'absolute z-40 mt-1.5 origin-top overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-pop',
-              align === 'right' ? 'right-0' : 'left-0',
-              width
-            )}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'fixed',
+              top: pos?.top ?? 0,
+              left: pos?.left ?? 0,
+              visibility: pos ? 'visible' : 'hidden',
+            }}
+            className="z-50 min-w-44 rounded-xl border border-border bg-surface p-1 shadow-lg"
           >
-            {header && <div className="border-b border-line px-2.5 py-2">{header}</div>}
-            <div className={cn(header && 'pt-1', maxHeight && 'overflow-y-auto', maxHeight)}>
-              {items.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  role="menuitem"
-                  disabled={item.disabled}
-                  onClick={() => {
-                    if (closeOnSelect) setOpen(false);
-                    item.onSelect();
-                  }}
-                  className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium',
-                    'transition-colors duration-150 ease-out disabled:pointer-events-none disabled:opacity-40',
-                    item.tone === 'danger'
-                      ? 'text-danger-text hover:bg-danger-soft'
-                      : item.selected
-                        ? 'bg-brand-soft text-brand-text'
-                        : 'text-fg hover:bg-surface-muted'
-                  )}
-                >
-                  {item.icon && (
-                    <item.icon size={15} className="shrink-0 opacity-70" aria-hidden />
-                  )}
-                  <span className="flex-1 truncate">{item.label}</span>
-                  {typeof item.count === 'number' && (
-                    <span className="rounded-md bg-surface-muted px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-fg-subtle">
-                      {item.count}
-                    </span>
-                  )}
-                  {item.selected && (
-                    <CheckIcon size={14} className="shrink-0 text-brand-text" aria-hidden />
-                  )}
-                </button>
-              ))}
-            </div>
-          </motion.div>
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                disabled={item.disabled}
+                onClick={() => {
+                  setOpen(false);
+                  item.onSelect();
+                }}
+                className={[
+                  'flex w-full items-center rounded-lg px-3 py-2 text-left text-[13px] transition-colors',
+                  'disabled:cursor-not-allowed disabled:opacity-40',
+                  item.tone === 'danger'
+                    ? 'text-red-600 hover:bg-red-50'
+                    : 'text-fg hover:bg-surface-muted',
+                ].join(' ')}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body
         )}
-      </AnimatePresence>
-    </div>
+    </>
   );
 }
