@@ -119,3 +119,13 @@ export async function updateAnnexStatus(
   const unwrapped = unwrap(res);
   return { id: unwrapped.id, status: unwrapped.status as RecordStatus };
 }
+
+export async function deleteActivityReport(missionId: number, reportId: number): Promise<void> {
+  await request<ApiEnvelope<unknown> | unknown>(
+    { url: `/api/missions/${missionId}/reports/${reportId}`, method: 'DELETE' },
+    () => {
+      demoState.activityReports = demoState.activityReports.filter((r) => r.id !== reportId);
+      return { id: reportId };
+    }
+  );
+}

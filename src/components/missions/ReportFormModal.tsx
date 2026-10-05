@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { SearchableSelect } from '../ui/SearchableSelect';
 import { createReport } from '../../api/reportsAdmin';
 
 export interface MissionLite {
@@ -133,16 +134,23 @@ export function ReportFormModal({
         <h2 className="text-[16px] font-semibold text-fg">Write activity report</h2>
         <p className="mt-1 text-[12px] text-fg-muted">Pick a mission to pre-fill the header, then edit anything you need.</p>
 
-        <label className="mt-4 block text-[12px] text-fg">Mission
-          <select className={input} value={missionId} onChange={(e) => setMissionId(Number(e.target.value) || '')}>
-            <option value="">Select a mission...</option>
-            {missions.map((m) => (
-              <option key={m.id} value={m.id}>
-                MSN-{m.id} - {m.requesterName} - {m.destinationLocation}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="mt-4 block text-[12px] text-fg">
+          <label htmlFor="mission-select">Mission</label>
+          <div className="mt-1">
+            <SearchableSelect
+              id="mission-select"
+              value={missionId === '' ? '' : String(missionId)}
+              onChange={(v) => setMissionId(Number(v) || '')}
+              placeholder="Select a mission..."
+              searchPlaceholder="Search by mission no., requester or destination..."
+              options={missions.map((m) => ({
+                value: String(m.id),
+                label: `MSN-${m.id} - ${m.requesterName ?? 'Unknown'}`,
+                description: m.destinationLocation ?? m.travelObjectives ?? undefined,
+              }))}
+            />
+          </div>
+        </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {field('requesterName', 'Requester name')}

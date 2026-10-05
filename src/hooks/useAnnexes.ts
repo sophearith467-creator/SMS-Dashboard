@@ -9,6 +9,7 @@ import {
   fetchVehicleRequests,
   createVehicleRequest,
   updateAnnexStatus,
+  deleteActivityReport,
   type AnnexKind } from
 '../api/annexes';
 import { queryKeys } from '../lib/queryKeys';
@@ -89,5 +90,18 @@ export function useAnnexStatusUpdate(kind: AnnexKind) {
       toast.success(`Marked as ${titleCase(status)}`);
     },
     onError: (error: Error) => toast.error(error.message || 'Could not update the record')
+  });
+}
+
+export function useDeleteActivityReport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ missionId, id }: { missionId: number; id: number }) => deleteActivityReport(missionId, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.annexes.activityReports });
+      toast.success('Report deleted');
+    },
+    onError: (error: Error) => toast.error(error.message || 'Could not delete the report'),
   });
 }
