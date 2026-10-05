@@ -40,8 +40,6 @@ const ROW_ACCENT: Record<MissionStatus, string> = {
   APPROVED: 'border-l-2 border-l-success',
   REJECTED: 'border-l-2 border-l-danger',
   CANCELLED: 'border-l-2 border-l-transparent',
-  REPORT_SUBMITTED: 'border-l-2 border-l-brand',
-  SETTLED: 'border-l-2 border-l-transparent',
 };
 
 export function Missions() {
@@ -93,7 +91,9 @@ export function Missions() {
     return counts;
   }, [missions]);
 
-  const activeLabel = status === 'ALL' ? 'All statuses' : titleCase(status);
+  const statusLabel = (value: StatusFilter) =>
+    value === 'SETTLED' ? 'Submit Complete' : titleCase(value);
+  const activeLabel = status === 'ALL' ? 'All statuses' : statusLabel(status);
 
   const columns: Array<Column<Mission>> = [
     {
@@ -169,8 +169,7 @@ export function Missions() {
           width="w-64"
           maxHeight="max-h-80"
           items={FILTERS.map((value) => ({
-            label: value === 'ALL' ? 'All statuses' : titleCase(value),
-            selected: value === status,
+            label: value === 'ALL' ? 'All statuses' : statusLabel(value),            selected: value === status,
             count: statusCounts[value] ?? 0,
             onSelect: () => setStatus(value),
           }))}

@@ -31,11 +31,10 @@ export async function fetchActivityReports(): Promise<ActivityReport[]> {
 }
 
 export async function fetchVehicleRequests(): Promise<VehicleRequest[]> {
-  const res = await request<ApiEnvelope<VehicleRequest[]> | VehicleRequest[]>(
-    { url: '/api/annexes/vehicle-requests' },
-    () => []
+  const res = await http.get<ApiEnvelope<VehicleRequest[]> | VehicleRequest[]>(
+    '/api/annexes/vehicle-requests'
   );
-  return unwrap(res) ?? [];
+  return unwrap(res.data) ?? [];
 }
 
 export async function fetchMissionVehicleRequests(missionId: number): Promise<VehicleRequest[]> {

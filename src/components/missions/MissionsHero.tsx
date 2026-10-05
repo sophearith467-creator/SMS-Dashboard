@@ -15,7 +15,7 @@ export function MissionsHero({ total, inReview, approved, settled, onCreateMissi
     { key: 'total', label: 'Total missions', value: total, icon: MapIcon },
     { key: 'inReview', label: 'In review', value: inReview, icon: ClockIcon },
     { key: 'approved', label: 'Approved', value: approved, icon: CheckCircle2Icon },
-    { key: 'settled', label: 'Settled', value: settled, icon: RouteIcon },
+    { key: 'settled', label: 'Submit Complete', value: settled, icon: RouteIcon },
   ] as const;
 
   return (
@@ -35,7 +35,7 @@ export function MissionsHero({ total, inReview, approved, settled, onCreateMissi
       />
 
       <div className="relative flex flex-col gap-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between animate-fade-in-up">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between animate-fade-in-up">
           <div>
             <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-white sm:text-[26px]">
               Missions
@@ -43,16 +43,15 @@ export function MissionsHero({ total, inReview, approved, settled, onCreateMissi
             <p className="mt-1 text-[13.5px] text-white/75">
               Every mission request, from draft through settlement.
             </p>
-            <button
-              type="button"
-              onClick={onCreateMission}
-              className="mt-4 inline-flex h-10 w-fit items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-brand-strong shadow-pop transition-transform duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
-            >
-              <PlusIcon size={16} aria-hidden />
-              New mission
-            </button>
           </div>
-
+          <button
+            type="button"
+            onClick={onCreateMission}
+            className="inline-flex h-10 w-fit self-end items-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-brand-strong shadow-pop transition-transform duration-150 ease-out hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0 sm:self-auto"
+          >
+            <PlusIcon size={16} aria-hidden />
+            New mission
+          </button>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
