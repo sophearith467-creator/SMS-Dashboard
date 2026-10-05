@@ -72,50 +72,70 @@ export function Dashboard() {
       />
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          index={0}
-          label="Total missions"
-          value={summary.data ? formatNumber(summary.data.total) : '—'}
-          caption={summary.data ? `${summary.data.inProgress} currently in the field` : ''}
-          icon={MapIcon}
-          accent="brand"
-          changePct={summary.data?.changeVsLastMonthPct}
-          loading={summary.isLoading}
-        />
+        <Link
+          to="/missions"
+          className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <StatCard
+            index={0}
+            label="Total missions"
+            value={summary.data ? formatNumber(summary.data.total) : '—'}
+            caption={summary.data ? `${summary.data.inProgress} currently in the field` : ''}
+            icon={MapIcon}
+            accent="brand"
+            changePct={summary.data?.changeVsLastMonthPct}
+            loading={summary.isLoading}
+          />
+        </Link>
 
-        <StatCard
-          index={1}
-          label="Allowance spend"
-          value={spend.data ? formatCurrency(spend.data.totalSpend, spend.data.currency, true) : '—'}
-          caption={spend.data ? budgetCaption(spend.data.totalSpend, spend.data.budget) : ''}
-          icon={WalletIcon}
-          accent="success"
-          changePct={spend.data?.changeVsLastMonthPct}
-          positiveIsGood={false}
-          loading={spend.isLoading}
-        />
+        <Link
+          to="/#allowance-budget"
+          className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <StatCard
+            index={1}
+            label="Allowance spend"
+            value={spend.data ? formatCurrency(spend.data.totalSpend, spend.data.currency, true) : '—'}
+            caption={spend.data ? budgetCaption(spend.data.totalSpend, spend.data.budget) : ''}
+            icon={WalletIcon}
+            accent="success"
+            changePct={spend.data?.changeVsLastMonthPct}
+            positiveIsGood={false}
+            loading={spend.isLoading}
+          />
+        </Link>
 
-        <StatCard
-          index={2}
-          label="Total users"
-          value={users.data ? formatNumber(users.data.total) : '—'}
-          caption="Across all roles and departments"
-          icon={UsersIcon}
-          accent="brand"
-          loading={users.isLoading}
-        />
+        <Link
+          to="/users"
+          className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <StatCard
+            index={2}
+            label="Total users"
+            value={users.data ? formatNumber(users.data.total) : '—'}
+            caption="Across all roles and departments"
+            icon={UsersIcon}
+            accent="brand"
+            loading={users.isLoading}
+          />
+        </Link>
 
-        <StatCard
-          index={3}
-          label="Open exceptions"
-          value={exceptions.data ? formatNumber(exceptions.data.open) : '—'}
-          caption={exceptions.data ? `${exceptions.data.items.length} need a decision this week` : ''}
-          icon={TriangleAlertIcon}
-          accent="danger"
-          changePct={exceptions.data?.changeVsLastMonthPct}
-          positiveIsGood={false}
-          loading={exceptions.isLoading}
-        />
+        <Link
+          to="/#exceptions"
+          className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
+          <StatCard
+            index={3}
+            label="Open exceptions"
+            value={exceptions.data ? formatNumber(exceptions.data.open) : '—'}
+            caption={exceptions.data ? `${exceptions.data.items.length} need a decision this week` : ''}
+            icon={TriangleAlertIcon}
+            accent="danger"
+            changePct={exceptions.data?.changeVsLastMonthPct}
+            positiveIsGood={false}
+            loading={exceptions.isLoading}
+          />
+        </Link>
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-12">
@@ -192,7 +212,7 @@ export function Dashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-12">
-        <Card interactive padded={false} className="xl:col-span-7">
+        <Card id="exceptions" interactive padded={false} className="xl:col-span-7">
           <CardHeader
             className="px-5 pb-4 pt-5"
             title="Exceptions needing attention"
@@ -218,7 +238,7 @@ export function Dashboard() {
           </div>
         </Card>
 
-        <Card interactive className="xl:col-span-5">
+        <Card id="allowance-budget" interactive className="xl:col-span-5">
           <CardHeader
             title="Allowance budget"
             description="Settled and committed spend against the annual travel envelope."
