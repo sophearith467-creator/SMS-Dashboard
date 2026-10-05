@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MoreHorizontalIcon, PlusIcon, SearchIcon, UsersIcon } from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
@@ -20,6 +20,7 @@ import {
   useUpdateUser,
   useUsers,
 } from '../hooks/useUsers';
+import { useMissions } from '../hooks/useMissions';
 import type { DirectoryUser } from '../data/users';
 import type { CreateUserPayload, UpdateUserPayload } from '../api/users';
 import { roleLabel } from '../lib/roles';
@@ -33,6 +34,7 @@ export function Users() {
   const [search, setSearch] = useState('');
 
   const { data, isLoading, isFetching } = useUsers({ page, pageSize: PAGE_SIZE, search });
+  const { data: missions = [] } = useMissions();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const deactivateUser = useDeactivateUser();
@@ -42,7 +44,17 @@ export function Users() {
   const [editingUser, setEditingUser] = useState<DirectoryUser | null>(null);
   const [pendingDeactivate, setPendingDeactivate] = useState<DirectoryUser | null>(null);
 
-  const rows = data?.items ?? [];
+  const missionCounts = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const mission of missions) {
+      counts.set(mission.requesterId, (counts.get(mission.requesterId) ?? 0) + 1);
+    }
+    return counts;
+  }, [missions]);
+  const rows = (data?.items ?? []).map((user) => ({
+    ...user,
+    missions: missionCounts.get(Number(user.id)) ?? user.missions,
+  }));
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
