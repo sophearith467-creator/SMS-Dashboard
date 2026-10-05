@@ -2,18 +2,19 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CarFrontIcon,
-  MoreHorizontalIcon,
+  RefreshCwIcon,
   SearchIcon
 } from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatusBadge } from '../components/shared/StatusBadge';
 import { DataTable, type Column } from '../components/shared/DataTable';
-import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
 import { Input } from '../components/ui/Input';
-import { useAnnexStatusUpdate, useVehicleRequests } from '../hooks/useAnnexes';
+import { Button } from '../components/ui/Button';
+import { useVehicleRequests } from '../hooks/useAnnexes';
+import { useMissions } from '../hooks/useMissions';
 import { formatDate, titleCase } from '../lib/utils';
 import type { VehicleRequest, VehicleRequestStatus } from '../types/annex';
 
@@ -29,17 +30,42 @@ const FILTERS: Filter[] = [
   'PAID'
 ];
 
+function getVehicleRequestStatus(
+  request: VehicleRequest,
+  missionStatuses: ReadonlyMap<number, string>
+): VehicleRequestStatus {
+  const requestStatus = request.status ?? 'DRAFT';
+  const missionApproved = missionStatuses.get(request.missionId) === 'APPROVED';
+  return missionApproved && ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW'].includes(requestStatus)
+    ? 'APPROVED'
+    : requestStatus;
+}
+
 export function VehicleRequests() {
-  const { data, isLoading } = useVehicleRequests();
-  const updateStatus = useAnnexStatusUpdate('vehicle-requests');
+  const {
+    data,
+    isLoading: requestsLoading,
+    isError: requestsError,
+    refetch: refetchRequests
+  } = useVehicleRequests();
+  const {
+    data: missions,
+    isLoading: missionsLoading,
+    isError: missionsError,
+    refetch: refetchMissions
+  } = useMissions();
   const [filter, setFilter] = useState<Filter>('ALL');
   const [search, setSearch] = useState('');
 
   const requests = data ?? [];
+  const missionStatuses = useMemo(
+    () => new Map((missions ?? []).map((mission) => [mission.id, mission.status])),
+    [missions]
+  );
   const rows = useMemo(
     () =>
       requests.filter((request) => {
-        const status = request.status ?? 'DRAFT';
+        const status = getVehicleRequestStatus(request, missionStatuses);
         const matchesFilter = filter === 'ALL' || status === filter;
         const matchesSearch =
           !search.trim() ||
@@ -54,8 +80,8 @@ export function VehicleRequests() {
             .toLowerCase()
             .includes(search.trim().toLowerCase());
         return matchesFilter && matchesSearch;
-      }),
-    [requests, filter, search]
+      }).sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)),
+    [requests, missionStatuses, filter, search]
   );
 
   const columns: Array<Column<VehicleRequest>> = [
@@ -111,40 +137,10 @@ export function VehicleRequests() {
     {
       key: 'status',
       header: 'Status',
-      render: (request) => <StatusBadge status={request.status ?? 'DRAFT'} />
-    },
-    {
-      key: 'actions',
-      header: <span className="sr-only">Actions</span>,
-      align: 'right',
       render: (request) => (
-        <DropdownMenu
-          width="w-48"
-          items={[
-            {
-              label: 'Approve request',
-              onSelect: () => updateStatus.mutate({ id: request.id, status: 'APPROVED' })
-            },
-            {
-              label: 'Decline request',
-              tone: 'danger',
-              onSelect: () => updateStatus.mutate({ id: request.id, status: 'REJECTED' })
-            }
-          ]}
-          trigger={({ open, toggle }) => (
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={`Actions for vehicle request ${request.id}`}
-              aria-expanded={open}
-              className="rounded-lg p-1.5 text-fg-subtle transition-colors duration-150 ease-out hover:bg-surface-muted hover:text-fg"
-            >
-              <MoreHorizontalIcon size={16} />
-            </button>
-          )}
-        />
+        <StatusBadge status={getVehicleRequestStatus(request, missionStatuses)} />
       )
-    }
+    },
   ];
 
   return (
@@ -164,10 +160,9 @@ export function VehicleRequests() {
             options={FILTERS.map((value) => ({
               value,
               label: value === 'ALL' ? 'All' : titleCase(value),
-              count:
-                value === 'ALL'
-                  ? requests.length
-                  : requests.filter((r) => (r.status ?? 'DRAFT') === value).length
+              count: value === 'ALL'
+                ? requests.length
+                : requests.filter((request) => getVehicleRequestStatus(request, missionStatuses) === value).length
             }))}
           />
         </div>
@@ -188,15 +183,33 @@ export function VehicleRequests() {
         caption="Vehicle requests"
         columns={columns}
         rows={rows}
-        loading={isLoading}
+        loading={requestsLoading || missionsLoading}
         getRowId={(request) => String(request.id)}
-        empty={
+        empty={requestsError || missionsError ? (
+          <EmptyState
+            icon={CarFrontIcon}
+            title="Could not load live data"
+            description="Check your connection and sign-in, then retry."
+            action={
+              <Button
+                variant="secondary"
+                icon={RefreshCwIcon}
+                onClick={() => {
+                  void refetchRequests();
+                  void refetchMissions();
+                }}
+              >
+                Retry
+              </Button>
+            }
+          />
+        ) : (
           <EmptyState
             icon={CarFrontIcon}
             title="No vehicle requests"
             description="Fleet bookings raised alongside a mission will show up here for dispatch to assign."
           />
-        }
+        )}
       />
     </PageTransition>
   );
