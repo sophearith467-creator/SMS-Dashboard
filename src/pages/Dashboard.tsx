@@ -2,10 +2,10 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
-  ClockIcon,
   TriangleAlertIcon,
   WalletIcon,
-  MapIcon
+  MapIcon,
+  UsersIcon
 } from 'lucide-react';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatCard } from '../components/shared/StatCard';
@@ -16,20 +16,19 @@ import {
   type TrendPeriod
 } from '../components/dashboard/MissionTrendChart';
 import { SpendBreakdown } from '../components/dashboard/SpendBreakdown';
-import { TurnaroundPanel } from '../components/dashboard/TurnaroundPanel';
 import { ExceptionsList } from '../components/dashboard/ExceptionsList';
 import { DashboardHero } from '../components/dashboard/DashboardHero';
 import { MyReportsCard } from '../components/dashboard/MyReportsCard';
 import { MissionFormModal } from '../components/missions/MissionFormModal';
 import {
   useAllowanceSpend,
-  useApprovalTurnaround,
   useExceptions,
   useMissionSummary
 } from '../hooks/useAnalytics';
+import { useUsers } from '../hooks/useUsers';
 import { useAuth } from '../context/AuthContext';
 import { APPROVER_ROLES } from '../lib/roles';
-import { formatCurrency, formatDurationHours, formatNumber } from '../lib/utils';
+import { formatCurrency, formatNumber } from '../lib/utils';
 
 function budgetCaption(totalSpend: number, budget: number): string {
   if (!Number.isFinite(budget) || budget <= 0) {
@@ -59,8 +58,8 @@ export function Dashboard() {
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('month');
   const summary = useMissionSummary();
   const spend = useAllowanceSpend();
-  const turnaround = useApprovalTurnaround();
   const exceptions = useExceptions();
+  const users = useUsers({ page: 1, pageSize: 1 });
   const firstName = user?.fullName.split(' ')[0] ?? 'there';
 
   return (
@@ -98,14 +97,12 @@ export function Dashboard() {
 
         <StatCard
           index={2}
-          label="Approval turnaround"
-          value={turnaround.data ? formatDurationHours(turnaround.data.averageHours) : '—'}
-          caption={turnaround.data ? `${turnaround.data.withinSlaPct}% resolved within SLA` : ''}
-          icon={ClockIcon}
-          accent="warning"
-          changePct={turnaround.data?.changeVsLastMonthPct}
-          positiveIsGood={false}
-          loading={turnaround.isLoading}
+          label="Total users"
+          value={users.data ? formatNumber(users.data.total) : '—'}
+          caption="Across all roles and departments"
+          icon={UsersIcon}
+          accent="brand"
+          loading={users.isLoading}
         />
 
         <StatCard
@@ -122,7 +119,7 @@ export function Dashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-12">
-        <Card interactive className="xl:col-span-8">
+        <Card interactive className="xl:col-span-12">
           <CardHeader
             title="Mission throughput"
             description={PERIOD_DESCRIPTION[trendPeriod]}
@@ -191,20 +188,6 @@ export function Dashboard() {
               ))}
             </dl>
           )}
-        </Card>
-
-        <Card interactive className="xl:col-span-4">
-          <CardHeader
-            title="Approval turnaround"
-            description="Average time spent at each stage of the chain."
-          />
-          <div className="mt-5">
-            {turnaround.isLoading || !turnaround.data ? (
-              <SkeletonText lines={6} />
-            ) : (
-              <TurnaroundPanel data={turnaround.data} />
-            )}
-          </div>
         </Card>
       </div>
 
