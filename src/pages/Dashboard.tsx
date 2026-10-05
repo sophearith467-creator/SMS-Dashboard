@@ -26,6 +26,7 @@ import {
   useMissionSummary
 } from '../hooks/useAnalytics';
 import { useUsers } from '../hooks/useUsers';
+import { useMissions } from '../hooks/useMissions';
 import { useAuth } from '../context/AuthContext';
 import { APPROVER_ROLES } from '../lib/roles';
 import { formatCurrency, formatNumber } from '../lib/utils';
@@ -57,6 +58,7 @@ export function Dashboard() {
   const [createOpen, setCreateOpen] = useState(false);
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('month');
   const summary = useMissionSummary();
+  const missions = useMissions();
   const spend = useAllowanceSpend();
   const exceptions = useExceptions();
   const users = useUsers({ page: 1, pageSize: 1 });
@@ -185,10 +187,10 @@ export function Dashboard() {
           />
 
           <div className="mt-5">
-            {summary.isLoading || !summary.data ? (
+            {summary.isLoading || missions.isLoading || !summary.data ? (
               <Skeleton className="h-[268px] w-full rounded-xl" />
             ) : (
-              <MissionTrendChart data={summary.data.trend} period={trendPeriod} />
+              <MissionTrendChart missions={missions.data ?? []} period={trendPeriod} />
             )}
           </div>
 
