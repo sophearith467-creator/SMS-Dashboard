@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Area,
   AreaChart,
@@ -9,8 +8,23 @@ import {
   YAxis
 } from 'recharts';
 import { TrendingUpIcon } from 'lucide-react';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  addYears,
+  format,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subDays,
+  subMonths,
+  subWeeks,
+  subYears
+} from 'date-fns';
 import { useChartColors } from '../../hooks/useChartColors';
-import type { MissionSummary } from '../../types/analytics';
+import type { Mission } from '../../types/mission';
 
 export type TrendPeriod = 'day' | 'week' | 'month' | 'year';
 
@@ -21,14 +35,84 @@ const PERIOD_HINT: Record<TrendPeriod, string> = {
   year: 'Yearly submitted vs completed will appear here once you have multi-year history.'
 };
 
+type TrendPoint = { label: string; submitted: number; completed: number };
+
+function buildTrend(missions: Mission[], period: TrendPeriod): TrendPoint[] {
+  const today = startOfDay(new Date());
+  let firstBucket: Date;
+  let currentBucket: Date;
+  let bucketCount: number;
+  let nextBucket: (date: Date) => Date;
+  let labelFormat: string;
+
+  switch (period) {
+    case 'day':
+      currentBucket = today;
+      firstBucket = subDays(today, 13);
+      bucketCount = 14;
+      nextBucket = (date) => addDays(date, 1);
+      labelFormat = 'MMM d';
+      break;
+    case 'week':
+      currentBucket = startOfWeek(today, { weekStartsOn: 1 });
+      firstBucket = subWeeks(currentBucket, 11);
+      bucketCount = 12;
+      nextBucket = (date) => addWeeks(date, 1);
+      labelFormat = 'MMM d';
+      break;
+    case 'month':
+      currentBucket = startOfMonth(today);
+      firstBucket = subMonths(currentBucket, 5);
+      bucketCount = 6;
+      nextBucket = (date) => addMonths(date, 1);
+      labelFormat = 'MMM';
+      break;
+    case 'year':
+      currentBucket = startOfYear(today);
+      firstBucket = subYears(currentBucket, 4);
+      bucketCount = 5;
+      nextBucket = (date) => addYears(date, 1);
+      labelFormat = 'yyyy';
+      break;
+  }
+
+  let bucketStart = firstBucket;
+  const buckets = Array.from({ length: bucketCount }, () => {
+    const bucket = { start: bucketStart, label: format(bucketStart, labelFormat), submitted: 0, completed: 0 };
+    bucketStart = nextBucket(bucketStart);
+    return bucket;
+  });
+  const bucketEnd = nextBucket(currentBucket);
+  const completedStatuses = new Set(['COMPLETED', 'REPORT_SUBMITTED', 'SETTLED']);
+
+  for (const mission of missions) {
+    const createdAt = new Date(mission.createdAt);
+    const submittedIndex = buckets.findIndex((bucket, index) =>
+      createdAt >= bucket.start && createdAt < (buckets[index + 1]?.start ?? bucketEnd)
+    );
+    if (submittedIndex >= 0) buckets[submittedIndex].submitted += 1;
+
+    if (completedStatuses.has(mission.status)) {
+      const updatedAt = new Date(mission.updatedAt || mission.createdAt);
+      const completedIndex = buckets.findIndex((bucket, index) =>
+        updatedAt >= bucket.start && updatedAt < (buckets[index + 1]?.start ?? bucketEnd)
+      );
+      if (completedIndex >= 0) buckets[completedIndex].completed += 1;
+    }
+  }
+
+  return buckets;
+}
+
 export function MissionTrendChart({
-  data,
+  missions,
   period = 'month'
 }: {
-  data: MissionSummary['trend'];
+  missions: Mission[];
   period?: TrendPeriod;
 }) {
   const colors = useChartColors();
+  const data = buildTrend(missions, period);
   const hasData =
     Array.isArray(data) &&
     data.length > 0 &&
@@ -64,7 +148,7 @@ export function MissionTrendChart({
           </defs>
           <CartesianGrid vertical={false} stroke={colors.grid} strokeDasharray="4 4" />
           <XAxis
-            dataKey="month"
+            dataKey="label"
             tickLine={false}
             axisLine={false}
             tick={{ fill: colors.axis, fontSize: 12 }}

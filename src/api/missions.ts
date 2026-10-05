@@ -1,8 +1,9 @@
 import type { Mission, MissionInput } from '../types/mission';
 import { http, request } from './client';
+import { demoState } from './demoStore';
 
 export async function fetchMissions(): Promise<Mission[]> {
-  return request<Mission[]>({ url: '/api/missions' }, () => []);
+  return request<Mission[]>({ url: '/api/missions' }, () => demoState.missions);
 }
 
 export async function fetchMission(id: number): Promise<Mission> {
