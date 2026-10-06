@@ -15,7 +15,7 @@ export function MissionsHero({ total, inReview, approved, settled, onCreateMissi
     { key: 'total', label: 'Total missions', value: total, icon: MapIcon },
     { key: 'inReview', label: 'In review', value: inReview, icon: ClockIcon },
     { key: 'approved', label: 'Approved', value: approved, icon: CheckCircle2Icon },
-    { key: 'settled', label: 'Settled', value: settled, icon: RouteIcon },
+    { key: 'settled', label: 'Submit Complete', value: settled, icon: RouteIcon },
   ] as const;
 
   return (

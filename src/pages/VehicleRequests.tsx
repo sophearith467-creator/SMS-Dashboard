@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CarFrontIcon,
+  ChevronDownIcon,
   RefreshCwIcon,
   SearchIcon
 } from 'lucide-react';
@@ -13,9 +14,10 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { useVehicleRequests } from '../hooks/useAnnexes';
 import { useMissions } from '../hooks/useMissions';
-import { formatDate, titleCase } from '../lib/utils';
+import { cn, formatDate, titleCase } from '../lib/utils';
 import type { VehicleRequest, VehicleRequestStatus } from '../types/annex';
 
 type Filter = 'ALL' | VehicleRequestStatus;
@@ -151,21 +153,38 @@ export function VehicleRequests() {
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="overflow-x-auto pb-1">
-          <FilterTabs
-            ariaLabel="Filter vehicle requests"
-            layoutId="vehicles-filter"
-            value={filter}
-            onChange={setFilter}
-            options={FILTERS.map((value) => ({
-              value,
-              label: value === 'ALL' ? 'All' : titleCase(value),
-              count: value === 'ALL'
+                <DropdownMenu
+          align="left"
+          width="w-64"
+          maxHeight="max-h-80"
+          items={FILTERS.map((value) => ({
+            label: value === 'ALL' ? 'All statuses' : titleCase(value),
+            selected: value === filter,
+            count:
+              value === 'ALL'
                 ? requests.length
-                : requests.filter((request) => getVehicleRequestStatus(request, missionStatuses) === value).length
-            }))}
-          />
-        </div>
+                : requests.filter(
+                    (request) => getVehicleRequestStatus(request, missionStatuses) === value
+                  ).length,
+            onSelect: () => setFilter(value),
+          }))}
+          trigger={({ open, toggle }) => (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium text-fg shadow-soft transition-colors duration-150 ease-out hover:border-line-strong"
+            >
+              <span className="text-fg-subtle">Status:</span>
+              {filter === 'ALL' ? 'All statuses' : titleCase(filter)}
+              <ChevronDownIcon
+                size={15}
+                className={cn('text-fg-subtle transition-transform duration-150', open && 'rotate-180')}
+                aria-hidden
+              />
+            </button>
+          )}
+        />
         <div className="w-full sm:w-72">
           <Input
             type="search"
