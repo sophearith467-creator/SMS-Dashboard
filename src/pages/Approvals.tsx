@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
+import { StatusBadge } from '../components/shared/StatusBadge';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState } from '../components/ui/EmptyState';
 import { FilterTabs } from '../components/ui/FilterTabs';
@@ -20,7 +21,7 @@ import { getApprovalHistory } from '../api/approvals';
 import { queryKeys } from '../lib/queryKeys';
 import { cn, formatDate, titleCase } from '../lib/utils';
 import type { PendingApprovalItem } from '../types/approval';
-import type { ApprovalStage } from '../types/mission';
+import type { ApprovalStage, MissionStatus } from '../types/mission';
 
 type StageFilter = string;
 const APPROVAL_STAGES: ApprovalStage[] = [
@@ -30,6 +31,19 @@ const APPROVAL_STAGES: ApprovalStage[] = [
   'BIZOPS',
   'EXECUTIVE',
 ];
+
+const ROW_ACCENT: Record<string, string> = {
+  DRAFT: 'border-l-2 border-l-transparent',
+  SUBMITTED: 'border-l-2 border-l-brand',
+  FM_REVIEW: 'border-l-2 border-l-warning',
+  HRBP_REVIEW: 'border-l-2 border-l-warning',
+  FINANCE_REVIEW: 'border-l-2 border-l-warning',
+  BIZOPS_REVIEW: 'border-l-2 border-l-warning',
+  EXECUTIVE_REVIEW: 'border-l-2 border-l-warning',
+  APPROVED: 'border-l-2 border-l-success',
+  REJECTED: 'border-l-2 border-l-danger',
+  CANCELLED: 'border-l-2 border-l-transparent',
+};
 
 function stageLabel(step: string | null | undefined): string {
   if (!step || step === 'UNASSIGNED') return 'Unassigned';
@@ -67,6 +81,10 @@ export function Approvals() {
         .map((entry) => entry.step)
     );
     return APPROVAL_STAGES.every((approvalStage) => approvedStages.has(approvalStage));
+  }
+
+   function effectiveStatus(item: PendingApprovalItem): MissionStatus {
+    return (isFullyApproved(item) ? 'APPROVED' : item.status) as MissionStatus;
   }
 
   const stages = useMemo(() => {
@@ -165,9 +183,10 @@ export function Approvals() {
                   <li
                     key={item.missionId}
                     className={cn(
-                      'group rounded-2xl border border-line bg-surface p-4 shadow-soft',
-                      'transition-[border-color,box-shadow,transform] duration-200 ease-out',
-                      'hover:-translate-y-0.5 hover:border-line-strong hover:shadow-card'
+                    'group rounded-2xl border border-line bg-surface p-4 shadow-soft',
+                     ROW_ACCENT[effectiveStatus(item)] ?? ROW_ACCENT.DRAFT,
+                    'transition-[border-color,box-shadow,transform] duration-200 ease-out',
+                    'hover:-translate-y-0.5 hover:border-y-line-strong hover:border-r-line-strong hover:shadow-card'
                     )}
                   >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -185,9 +204,7 @@ export function Approvals() {
                             const status = allApproved ? 'APPROVED' : item.status;
                             return (
                               <>
-                                <Badge tone={status === 'APPROVED' ? 'success' : 'brand'}>
-                                  {titleCase(status)}
-                                </Badge>
+                               <StatusBadge status={status as MissionStatus} />
                                 <div className="flex flex-wrap gap-1.5" aria-label="Approval stages">
                                   {APPROVAL_STAGES.map((approvalStage) => {
                                     const complete = approvedStages.has(approvalStage);
@@ -249,14 +266,15 @@ export function Approvals() {
           </div>
           <ul className="space-y-2.5">
             {recentlyApproved.map((mission) => (
-              <li key={mission.id} className="rounded-2xl border border-line bg-surface p-4 shadow-soft">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <li
+                key={mission.id}
+                className="rounded-2xl border border-line border-l-2 border-l-success bg-surface p-4 shadow-soft">                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-[11.5px] text-fg-subtle">
                         {mission.missionCode ?? `MSN-${mission.id}`}
                       </span>
-                      <Badge tone="success">Approved</Badge>
+                      <StatusBadge status="APPROVED" />
                     </div>
                     <Link
                       to={`/missions/${mission.id}`}

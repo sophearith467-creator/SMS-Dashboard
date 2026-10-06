@@ -18,7 +18,6 @@ import { Button } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { EmptyState } from '../components/ui/EmptyState';
-import { FilterTabs } from '../components/ui/FilterTabs';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { ReportFormModal } from '../components/missions/ReportFormModal';
@@ -35,6 +34,14 @@ import type { ActivityReport, ActivityReportStatus } from '../types/annex';
 type Filter = 'ALL' | ActivityReportStatus;
 
 const FILTERS: Filter[] = ['ALL', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'];
+
+const ROW_ACCENT: Record<string, string> = {
+  DRAFT: 'border-l-2 last:border-l-2 border-l-transparent',
+  SUBMITTED: 'border-l-2 last:border-l-2 border-l-brand',
+  UNDER_REVIEW: 'border-l-2 last:border-l-2 border-l-warning',
+  APPROVED: 'border-l-2 last:border-l-2 border-l-success',
+  REJECTED: 'border-l-2 last:border-l-2 border-l-danger',
+};
 
 export function ActivityReports() {
   const { data, isLoading } = useActivityReports();
@@ -277,7 +284,8 @@ export function ActivityReports() {
               />
             </button>
           )}
-        />        <div className="w-full sm:w-72">
+        />
+        <div className="w-full sm:w-72">
           <Input
             type="search"
             icon={SearchIcon}
@@ -296,6 +304,16 @@ export function ActivityReports() {
         rows={rows}
         loading={isLoading}
         getRowId={(report) => String(report.id)}
+        rowClassName={(report) =>
+          cn(
+            ROW_ACCENT[
+              String(report.status ?? 'DRAFT')
+                .trim()
+                .toUpperCase()
+                .replace(/[\s-]+/g, '_')
+            ]
+          )
+        }
         empty={
           <EmptyState
             icon={ClipboardListIcon}
