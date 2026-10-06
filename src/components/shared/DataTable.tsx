@@ -83,7 +83,7 @@ export function DataTable<T>({
             <tbody>
               {loading ?
             Array.from({ length: skeletonRows }).map((_, rowIndex) =>
-            <tr key={rowIndex} className="border-b border-line last:border-0">
+            <tr key={rowIndex} className="border-b border-line last:border-b-0">
                       {columns.map((column) =>
               <td key={column.key} className="px-4 py-4">
                           <Skeleton className={cn('h-4', rowIndex % 2 ? 'w-2/3' : 'w-4/5')} />

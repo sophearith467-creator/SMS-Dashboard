@@ -32,8 +32,16 @@ const FILTERS: Filter[] = [
   'PAID'
 ];
 
-function getVehicleRequestStatus(
-  request: VehicleRequest,
+const ROW_ACCENT: Record<string, string> = {
+  DRAFT: 'border-l-2 last:border-l-2 border-l-transparent',
+  SUBMITTED: 'border-l-2 last:border-l-2 border-l-brand',
+  UNDER_REVIEW: 'border-l-2 last:border-l-2 border-l-warning',
+  APPROVED: 'border-l-2 last:border-l-2 border-l-success',
+  REJECTED: 'border-l-2 last:border-l-2 border-l-danger',
+  PAID: 'border-l-2 last:border-l-2 border-l-success',
+};
+
+function getVehicleRequestStatus(  request: VehicleRequest,
   missionStatuses: ReadonlyMap<number, string>
 ): VehicleRequestStatus {
   const requestStatus = request.status ?? 'DRAFT';
@@ -153,7 +161,7 @@ export function VehicleRequests() {
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <DropdownMenu
+        <DropdownMenu 
           align="left"
           width="w-64"
           maxHeight="max-h-80"
@@ -203,7 +211,17 @@ export function VehicleRequests() {
         columns={columns}
         rows={rows}
         loading={requestsLoading || missionsLoading}
-        getRowId={(request) => String(request.id)}
+                getRowId={(request) => String(request.id)}
+        rowClassName={(request) =>
+          cn(
+            ROW_ACCENT[
+              String(getVehicleRequestStatus(request, missionStatuses))
+                .trim()
+                .toUpperCase()
+                .replace(/[\s-]+/g, '_')
+            ]
+          )
+        }
         empty={requestsError || missionsError ? (
           <EmptyState
             icon={CarFrontIcon}
