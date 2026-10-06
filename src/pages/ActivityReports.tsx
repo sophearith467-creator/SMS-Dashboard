@@ -86,6 +86,17 @@ export function ActivityReports() {
   };
 
   const reports = data ?? [];
+
+  // Missions that already have a report are hidden from the "Write report" picker
+    const availableMissions = useMemo(() => {
+    const reportedMissionIds = new Set(
+      (data ?? []).map((report) => String(report.missionId))
+    );
+    return (missionsQuery.data ?? []).filter(
+      (mission) => !reportedMissionIds.has(String(mission.id))
+    );
+  }, [data, missionsQuery.data]);
+
   const rows = useMemo(
     () =>
       reports.filter((report) => {
@@ -251,7 +262,7 @@ export function ActivityReports() {
       <ReportFormModal
         open={writeOpen}
         onClose={() => setWriteOpen(false)}
-        missions={missionsQuery.data ?? []}
+        missions={availableMissions}
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
