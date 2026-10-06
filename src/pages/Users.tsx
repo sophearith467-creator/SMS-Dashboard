@@ -1,6 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MoreHorizontalIcon, PlusIcon, SearchIcon, UsersIcon } from 'lucide-react';
+import {
+  ChevronDownIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  SearchIcon,
+  UsersIcon,
+} from 'lucide-react';
 import { PageHeader } from '../components/shared/PageHeader';
 import { PageTransition } from '../components/shared/PageTransition';
 import { StatusBadge } from '../components/shared/StatusBadge';
@@ -24,14 +30,35 @@ import { useMissions } from '../hooks/useMissions';
 import type { DirectoryUser } from '../data/users';
 import type { CreateUserPayload, UpdateUserPayload } from '../api/users';
 import { roleLabel } from '../lib/roles';
-import { formatDate } from '../lib/utils';
+import { cn, formatDate } from '../lib/utils';
 
 const PAGE_SIZE = 10;
+
+type UserRole = DirectoryUser['roles'][number];
+type StatusFilter = 'ALL' | 'ACTIVE' | 'SUSPENDED';
+
+const STATUS_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
+  { value: 'ALL', label: 'All statuses' },
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'SUSPENDED', label: 'Suspended' },
+];
+
+// "!" forces the left border back, even if DataTable uses `last:border-0`
+const ROW_ACCENT: Record<string, string> = {
+  ACTIVE: 'border-l-2 border-l-success !border-l-2',
+  SUSPENDED: 'border-l-2 border-l-danger !border-l-2',
+};
+const ROW_ACCENT_DEFAULT = 'border-l-2 border-l-transparent !border-l-2';
+
+const FILTER_BUTTON_CLASS =
+  'inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium text-fg shadow-soft transition-colors duration-150 ease-out hover:border-line-strong';
 
 export function Users() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | UserRole>('ALL');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
   const { data, isLoading, isFetching } = useUsers({ page, pageSize: PAGE_SIZE, search });
   const { data: missions = [] } = useMissions();
@@ -44,6 +71,20 @@ export function Users() {
   const [editingUser, setEditingUser] = useState<DirectoryUser | null>(null);
   const [pendingDeactivate, setPendingDeactivate] = useState<DirectoryUser | null>(null);
 
+  // Collect every role we have seen so far, so the dropdown always uses real values
+  const [knownRoles, setKnownRoles] = useState<UserRole[]>([]);
+  useEffect(() => {
+    const items = data?.items ?? [];
+    if (items.length === 0) return;
+    setKnownRoles((previous) => {
+      const next = new Set<UserRole>(previous);
+      for (const user of items) {
+        for (const role of user.roles) next.add(role);
+      }
+      return next.size === previous.length ? previous : Array.from(next).sort();
+    });
+  }, [data]);
+
   const missionCounts = useMemo(() => {
     const counts = new Map<number, number>();
     for (const mission of missions) {
@@ -51,12 +92,24 @@ export function Users() {
     }
     return counts;
   }, [missions]);
-  const rows = (data?.items ?? []).map((user) => ({
-    ...user,
-    missions: missionCounts.get(Number(user.id)) ?? user.missions,
-  }));
+
+  const rows = (data?.items ?? [])
+    .map((user) => ({
+      ...user,
+      missions: missionCounts.get(Number(user.id)) ?? user.missions,
+    }))
+    .filter((user) => {
+      const matchesRole = roleFilter === 'ALL' || user.roles.includes(roleFilter);
+      const matchesStatus = statusFilter === 'ALL' || user.status === statusFilter;
+      return matchesRole && matchesStatus;
+    });
+
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
+
+  const roleLabelText = roleFilter === 'ALL' ? 'All roles' : roleLabel(roleFilter);
+  const statusLabelText =
+    STATUS_OPTIONS.find((option) => option.value === statusFilter)?.label ?? 'All statuses';
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -149,7 +202,7 @@ export function Users() {
       align: 'right',
       render: (user) => (
         <DropdownMenu
-          placement="top" // open upward instead of from the bottom
+          placement="top"
           items={[
             {
               label: 'View details',
@@ -198,6 +251,79 @@ export function Users() {
         }
       />
 
+      <div className="mb-4 flex flex-wrap gap-3">
+        {/* Role filter */}
+        <DropdownMenu
+          align="left"
+          width="w-56"
+          maxHeight="max-h-80"
+          items={[
+            {
+              label: 'All roles',
+              selected: roleFilter === 'ALL',
+              onSelect: () => {
+                setRoleFilter('ALL');
+                setPage(1);
+              },
+            },
+            ...knownRoles.map((role) => ({
+              label: roleLabel(role),
+              selected: roleFilter === role,
+              onSelect: () => {
+                setRoleFilter(role);
+                setPage(1);
+              },
+            })),
+          ]}
+          trigger={({ open, toggle }) => (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              className={FILTER_BUTTON_CLASS}
+            >
+              <span className="text-fg-subtle">Role:</span>
+              {roleLabelText}
+              <ChevronDownIcon
+                size={15}
+                className={cn('text-fg-subtle transition-transform duration-150', open && 'rotate-180')}
+                aria-hidden
+              />
+            </button>
+          )}
+        />
+
+        {/* Status filter */}
+        <DropdownMenu
+          align="left"
+          width="w-52"
+          items={STATUS_OPTIONS.map((option) => ({
+            label: option.label,
+            selected: statusFilter === option.value,
+            onSelect: () => {
+              setStatusFilter(option.value);
+              setPage(1);
+            },
+          }))}
+          trigger={({ open, toggle }) => (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-expanded={open}
+              className={FILTER_BUTTON_CLASS}
+            >
+              <span className="text-fg-subtle">Status:</span>
+              {statusLabelText}
+              <ChevronDownIcon
+                size={15}
+                className={cn('text-fg-subtle transition-transform duration-150', open && 'rotate-180')}
+                aria-hidden
+              />
+            </button>
+          )}
+        />
+      </div>
+
       <DataTable
         caption="User directory"
         columns={columns}
@@ -205,6 +331,7 @@ export function Users() {
         loading={isLoading}
         getRowId={(user) => user.id}
         onRowClick={(user) => navigate(`/users/${user.id}`)}
+        rowClassName={(user) => cn(ROW_ACCENT[user.status] ?? ROW_ACCENT_DEFAULT)}
         toolbar={
           <>
             <p className="text-[13px] text-fg-muted">
@@ -236,8 +363,20 @@ export function Users() {
         empty={
           <EmptyState
             icon={UsersIcon}
-            title="No users match that search"
-            description="Try a different name, email address or department."
+            title="No users match those filters"
+            description="Try a different name, role, status or department."
+            action={
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setRoleFilter('ALL');
+                  setStatusFilter('ALL');
+                  handleSearchChange('');
+                }}
+              >
+                Reset filters
+              </Button>
+            }
           />
         }
       />
