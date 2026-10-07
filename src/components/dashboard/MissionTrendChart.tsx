@@ -24,20 +24,24 @@ import {
   subYears
 } from 'date-fns';
 import { useChartColors } from '../../hooks/useChartColors';
-import type { Mission } from '../../types/mission';
+import type { ActivityReport } from '../../types/annex';
 
 export type TrendPeriod = 'day' | 'week' | 'month' | 'year';
 
 const PERIOD_HINT: Record<TrendPeriod, string> = {
-  day: 'Daily submitted vs completed will appear here once activity is recorded.',
-  week: 'Weekly submitted vs completed will appear here once missions start flowing.',
-  month: 'Monthly submitted vs completed will appear here once missions start flowing through the pipeline.',
-  year: 'Yearly submitted vs completed will appear here once you have multi-year history.'
+  day: 'Daily report submitted vs completed will appear here once reports are recorded.',
+  week: 'Weekly report submitted vs completed will appear here once reports start flowing.',
+  month: 'Monthly report submitted vs completed will appear here once reports start flowing through review.',
+  year: 'Yearly report submitted vs completed will appear here once you have multi-year history.'
 };
+
+// Same statuses as the Activity Reports table
+const SUBMITTED_STATUSES = new Set(['SUBMITTED']); // shown as "Report submitted"
+const COMPLETED_STATUSES = new Set(['APPROVED']); // shown as "Completed"
 
 type TrendPoint = { label: string; submitted: number; completed: number };
 
-function buildTrend(missions: Mission[], period: TrendPeriod): TrendPoint[] {
+function buildTrend(reports: ActivityReport[], period: TrendPeriod): TrendPoint[] {
   const today = startOfDay(new Date());
   let firstBucket: Date;
   let currentBucket: Date;
@@ -78,26 +82,36 @@ function buildTrend(missions: Mission[], period: TrendPeriod): TrendPoint[] {
 
   let bucketStart = firstBucket;
   const buckets = Array.from({ length: bucketCount }, () => {
-    const bucket = { start: bucketStart, label: format(bucketStart, labelFormat), submitted: 0, completed: 0 };
+    const bucket = {
+      start: bucketStart,
+      label: format(bucketStart, labelFormat),
+      submitted: 0,
+      completed: 0
+    };
     bucketStart = nextBucket(bucketStart);
     return bucket;
   });
   const bucketEnd = nextBucket(currentBucket);
-  const completedStatuses = new Set(['COMPLETED', 'REPORT_SUBMITTED', 'SETTLED']);
 
-  for (const mission of missions) {
-    const createdAt = new Date(mission.createdAt);
-    const submittedIndex = buckets.findIndex((bucket, index) =>
-      createdAt >= bucket.start && createdAt < (buckets[index + 1]?.start ?? bucketEnd)
+  const findBucket = (date: Date) =>
+    buckets.findIndex(
+      (bucket, index) => date >= bucket.start && date < (buckets[index + 1]?.start ?? bucketEnd)
     );
-    if (submittedIndex >= 0) buckets[submittedIndex].submitted += 1;
 
-    if (completedStatuses.has(mission.status)) {
-      const updatedAt = new Date(mission.updatedAt || mission.createdAt);
-      const completedIndex = buckets.findIndex((bucket, index) =>
-        updatedAt >= bucket.start && updatedAt < (buckets[index + 1]?.start ?? bucketEnd)
-      );
-      if (completedIndex >= 0) buckets[completedIndex].completed += 1;
+  for (const report of reports) {
+    const status = String(report.status ?? 'DRAFT')
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, '_');
+
+    if (SUBMITTED_STATUSES.has(status)) {
+      const i = findBucket(new Date(report.createdAt));
+      if (i >= 0) buckets[i].submitted += 1;
+    }
+
+    if (COMPLETED_STATUSES.has(status)) {
+      const i = findBucket(new Date(report.updatedAt || report.createdAt));
+      if (i >= 0) buckets[i].completed += 1;
     }
   }
 
@@ -105,14 +119,14 @@ function buildTrend(missions: Mission[], period: TrendPeriod): TrendPoint[] {
 }
 
 export function MissionTrendChart({
-  missions,
+  reports,
   period = 'month'
 }: {
-  missions: Mission[];
+  reports: ActivityReport[];
   period?: TrendPeriod;
 }) {
   const colors = useChartColors();
-  const data = buildTrend(missions, period);
+  const data = buildTrend(reports, period);
   const hasData =
     Array.isArray(data) &&
     data.length > 0 &&
@@ -176,7 +190,7 @@ export function MissionTrendChart({
           <Area
             type="monotone"
             dataKey="submitted"
-            name="Submitted"
+            name="Report submitted"
             stroke={colors.brand}
             strokeWidth={2}
             fill="url(#trendSubmitted)"

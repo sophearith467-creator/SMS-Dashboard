@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRightIcon,
@@ -26,10 +26,10 @@ import {
   useMissionSummary
 } from '../hooks/useAnalytics';
 import { useUsers } from '../hooks/useUsers';
-import { useMissions } from '../hooks/useMissions';
 import { useAuth } from '../context/AuthContext';
 import { APPROVER_ROLES } from '../lib/roles';
 import { formatCurrency, formatNumber } from '../lib/utils';
+import { useActivityReports } from '../hooks/useAnnexes';
 
 function budgetCaption(totalSpend: number, budget: number): string {
   if (!Number.isFinite(budget) || budget <= 0) {
@@ -47,10 +47,10 @@ const PERIODS: { value: TrendPeriod; label: string }[] = [
 ];
 
 const PERIOD_DESCRIPTION: Record<TrendPeriod, string> = {
-  day: 'Submitted versus completed missions by day.',
-  week: 'Submitted versus completed missions by week.',
-  month: 'Submitted versus completed missions over the last six months.',
-  year: 'Submitted versus completed missions by year.'
+  day: 'Report submitted versus completed reports by day.',
+  week: 'Report submitted versus completed reports by week.',
+  month: 'Report submitted versus completed reports over the last six months.',
+  year: 'Report submitted versus completed reports by year.'
 };
 
 export function Dashboard() {
@@ -58,11 +58,12 @@ export function Dashboard() {
   const [createOpen, setCreateOpen] = useState(false);
   const [trendPeriod, setTrendPeriod] = useState<TrendPeriod>('month');
   const summary = useMissionSummary();
-  const missions = useMissions();
   const spend = useAllowanceSpend();
   const exceptions = useExceptions();
   const users = useUsers({ page: 1, pageSize: 1 });
   const firstName = user?.fullName.split(' ')[0] ?? 'there';
+  const reportsQuery = useActivityReports();
+  const reports = reportsQuery.data ?? [];
 
   return (
     <PageTransition>
@@ -143,7 +144,7 @@ export function Dashboard() {
       <div className="mt-4 grid gap-4 xl:grid-cols-12">
         <Card interactive className="xl:col-span-12">
           <CardHeader
-            title="Mission throughput"
+            title="Activity report throughput"
             description={PERIOD_DESCRIPTION[trendPeriod]}
             action={
               <div className="flex flex-wrap items-center gap-3">
@@ -175,7 +176,7 @@ export function Dashboard() {
                 <div className="hidden items-center gap-4 sm:flex">
                   <span className="flex items-center gap-1.5 text-[12px] text-fg-muted">
                     <span className="h-2 w-2 rounded-full bg-brand" aria-hidden />
-                    Submitted
+                    Report submitted
                   </span>
                   <span className="flex items-center gap-1.5 text-[12px] text-fg-muted">
                     <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
@@ -187,10 +188,10 @@ export function Dashboard() {
           />
 
           <div className="mt-5">
-            {summary.isLoading || missions.isLoading || !summary.data ? (
+            {summary.isLoading || reportsQuery.isLoading || !summary.data ? (
               <Skeleton className="h-[268px] w-full rounded-xl" />
             ) : (
-              <MissionTrendChart missions={missions.data ?? []} period={trendPeriod} />
+              <MissionTrendChart reports={reports} period={trendPeriod} />
             )}
           </div>
 
