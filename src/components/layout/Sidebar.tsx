@@ -16,7 +16,7 @@ function BrandMark() {
         M
       </span>
       <div className="leading-tight">
-        <p className="text-sm font-semibold tracking-[-0.01em] text-fg">Meridian</p>
+        <p className="text-sm font-semibold tracking-[-0.01em] text-fg">OML SMS</p>
         <p className="text-[11px] text-fg-subtle">Mission Management</p>
       </div>
     </div>);
