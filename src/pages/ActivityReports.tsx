@@ -1,7 +1,9 @@
 ﻿import { useMemo, useState } from 'react';
 import {
-  ChevronDownIcon,
-  ClipboardListIcon,
+    ChevronDownIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ClipboardListIcon,
   EyeIcon,
   MessageSquareIcon,
   MoreHorizontalIcon,
@@ -28,12 +30,22 @@ import {
   useAnnexStatusUpdate,
   useDeleteActivityReport,
 } from '../hooks/useAnnexes';
-import { cn, formatDateRange, titleCase } from '../lib/utils';
+import { cn, formatDateRange } from '../lib/utils';
 import type { ActivityReport, ActivityReportStatus } from '../types/annex';
 
 type Filter = 'ALL' | ActivityReportStatus;
 
+const STATUS_LABEL: Record<Filter, string> = {
+  ALL: 'All statuses',
+  DRAFT: 'Draft',
+  SUBMITTED: 'Report submitted',
+  UNDER_REVIEW: 'Under review',
+  APPROVED: 'Completed',
+  REJECTED: 'Rejected',
+};
+
 const FILTERS: Filter[] = ['ALL', 'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'];
+const PAGE_SIZE = 10;
 
 const ROW_ACCENT: Record<string, string> = {
   DRAFT: 'border-l-2 last:border-l-2 border-l-transparent',
@@ -50,6 +62,7 @@ export function ActivityReports() {
   const { can } = useAuth();
 
   const [filter, setFilter] = useState<Filter>('ALL');
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [reviewing, setReviewing] = useState<ActivityReport | null>(null);
   const [pendingDelete, setPendingDelete] = useState<ActivityReport | null>(null);
@@ -118,6 +131,12 @@ export function ActivityReports() {
     [reports, filter, search]
   );
 
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pagedRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const rangeStart = rows.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(safePage * PAGE_SIZE, rows.length);
+
   const columns: Array<Column<ActivityReport>> = [
     {
       key: 'report',
@@ -178,7 +197,10 @@ export function ActivityReports() {
     {
       key: 'status',
       header: 'Status',
-      render: (report) => <StatusBadge status={report.status ?? 'DRAFT'} />,
+      render: (report) => {
+      const status = (report.status ?? 'DRAFT') as ActivityReportStatus;
+      return <StatusBadge status={status} label={STATUS_LABEL[status]} />;
+    },
     },
     {
       key: 'actions',
@@ -271,13 +293,16 @@ export function ActivityReports() {
           width="w-64"
           maxHeight="max-h-80"
           items={FILTERS.map((value) => ({
-            label: value === 'ALL' ? 'All statuses' : titleCase(value),
+            label: STATUS_LABEL[value],
             selected: value === filter,
             count:
               value === 'ALL'
                 ? reports.length
                 : reports.filter((r) => (r.status ?? 'DRAFT') === value).length,
-            onSelect: () => setFilter(value),
+            onSelect: () => {
+            setFilter(value);
+            setPage(1);
+          },
           }))}
           trigger={({ open, toggle }) => (
             <button
@@ -287,7 +312,7 @@ export function ActivityReports() {
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium text-fg shadow-soft transition-colors duration-150 ease-out hover:border-line-strong"
             >
               <span className="text-fg-subtle">Status:</span>
-              {filter === 'ALL' ? 'All statuses' : titleCase(filter)}
+              {STATUS_LABEL[filter]}
               <ChevronDownIcon
                 size={15}
                 className={cn('text-fg-subtle transition-transform duration-150', open && 'rotate-180')}
@@ -303,7 +328,10 @@ export function ActivityReports() {
             aria-label="Search activity reports"
             placeholder="Search requester, objective, mission…"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
             className="h-9"
           />
         </div>
@@ -312,7 +340,7 @@ export function ActivityReports() {
       <DataTable
         caption="Activity reports"
         columns={columns}
-        rows={rows}
+        rows={pagedRows}
         loading={isLoading}
         getRowId={(report) => String(report.id)}
         rowClassName={(report) =>
@@ -333,6 +361,37 @@ export function ActivityReports() {
           />
         }
       />
+
+      {rows.length > PAGE_SIZE && (
+      <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+        <p className="text-[13px] text-fg-subtle tabular-nums">
+          Showing {rangeStart}–{rangeEnd} of {rows.length}
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage(safePage - 1)}
+            disabled={safePage === 1}
+            aria-label="Previous page"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-fg transition-colors duration-150 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronLeftIcon size={16} />
+          </button>
+          <span className="px-2 text-[13px] font-medium text-fg tabular-nums">
+            Page {safePage} of {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage(safePage + 1)}
+            disabled={safePage === pageCount}
+            aria-label="Next page"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface text-fg transition-colors duration-150 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <ChevronRightIcon size={16} />
+          </button>
+        </div>
+      </div>
+    )}
 
       <ConfirmDialog
         open={Boolean(pendingDelete)}

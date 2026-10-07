@@ -25,11 +25,17 @@ const TONE_BY_STATUS: Record<string, BadgeTone> = {
   SUSPENDED: 'danger'
 };
 
-export function StatusBadge({ status }: { status?: AnyStatus | null }) {
+export function StatusBadge({
+  status,
+  label,
+}: {
+  status?: AnyStatus | null;
+  label?: string;
+}) {
   const safe = status ?? 'DRAFT';
   return (
     <Badge tone={TONE_BY_STATUS[safe] ?? 'neutral'} dot>
-      {safe === 'SETTLED' ? 'Submit Complete' : titleCase(safe)}
+      {label ?? (safe === 'SETTLED' ? 'Submit Complete' : titleCase(safe))}
     </Badge>
   );
 }
